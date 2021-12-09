@@ -1,3 +1,0 @@
-[submodule "quic-opensand-emulation"]
-	path = quic-opensand-emulation
-	url = https://github.com/KaushikChavali/quic-opensand-emulation.git
