@@ -1,6 +1,6 @@
 # LTE and SATCOM Joint Emulator
 
-The scripts are built on the [OpenSAND](https://opensand.org/content/home.php) satellite emulation and [MoonGen](https://github.com/brentondwalker/MoonGen/) LTE emulation platforms. They offer a possibility to run automated measurements of various transport and application layter protocols.
+The scripts are built on the [OpenSAND](https://opensand.org/content/home.php) satellite emulation and [MoonGen](https://github.com/brentondwalker/MoonGen/) LTE emulation platforms. They offer a possibility to run automated measurements of various transport and application layer protocols.
 
 [![Namespace Overview](res/network-namespace-satcom-cellular.png)](res/network-namespace-satcom-cellular.pdf)
 

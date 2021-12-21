@@ -61,7 +61,7 @@ function _moon_setup_ip_config() {
     log D "Configuring ip addresses and routes"
 
     # Configure IP addresses
-    sudo ip netns exec osnd-moon-cl ip addr add ${CL_LAN_CLIENT_IP} dev ue3
+    sudo ip netns exec osnd-moon-cl ip addr add ${CL_LAN_CLIENT_IP_MG} dev ue3
     sudo ip netns exec osnd-moon-sv ip addr add ${SV_LAN_SERVER_IP} dev gw5
 
     # Set ifaces up
@@ -79,7 +79,7 @@ function _moon_setup_ip_config() {
     sudo ip netns exec osnd-moon-svgw ip link set br-svgw up
 
     # Add routes
-    sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_CLIENT_IP%%/*}
+    sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_CLIENT_IP_MG%%/*}
     sudo ip netns exec osnd-moon-sv ip route add default via ${SV_LAN_SERVER_IP%%/*}
 }
 
