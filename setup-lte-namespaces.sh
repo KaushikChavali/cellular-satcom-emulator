@@ -14,16 +14,16 @@
 #     An Open vSwitch br-lte(root) links the virtual interfaces ue0(root) and eNB0(root) via
 #     the physical interfaces em1-4(root). They form the LTE emulation network.
 #   client gateway:
-#     br-clgw(osnd-moon-clgw), ue2(osnd-moon-clgw), ue1(osnd-moon-clgw) form the client gateway 
+#     br-clgw(osnd-moon-clgw), ue2(osnd-moon-clgw), ue1(osnd-moon-clgw) form the client gateway
 #     and connect the application client to the emulation network.
 #   server gateway:
 #     br-svgw(osnd-moon-svgw), eNB1(osnd-moon-svgw), gw4(osnd-moon-svgw) form the server gateway
 #     and connect the application server to the emulation network.
 #   client:
-#     ue3(osnd-moon-cl) and ue2(osnd-moon-clgw) connect the application client to the client 
+#     ue3(osnd-moon-cl) and ue2(osnd-moon-clgw) connect the application client to the client
 #     gateway.
 #   server:
-#     gw4(osnd-moon-svgw) and gw5(osnd-moon-sv) connect the server gateway to the application 
+#     gw4(osnd-moon-svgw) and gw5(osnd-moon-sv) connect the server gateway to the application
 #     server.
 
 # _moon_setup_add_namespaces

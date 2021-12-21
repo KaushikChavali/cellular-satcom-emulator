@@ -34,6 +34,6 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     set -a
     source "${SCRIPT_DIR}/config/lte-config.sh"
     set +a
-    
+
     moon_teardown_moongen "$@"
 fi

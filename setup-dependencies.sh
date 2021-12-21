@@ -1,15 +1,5 @@
 #!/bin/bash
 
-# moon_setup_moongen()
-function moon_setup_moongen() {
-    # Start MoonGen LTE emulation
-    log D "Emulating LTE link with defaults"
-    sudo killall lte-emulation -q
-    tmux -L ${TMUX_SOCKET} new-session -s lte-emulation -d "sudo bash"
-    sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t lte-emulation "sudo ${MOONGEN_BIN} ${MOONGEN_SCRIPT_DIR}/lte-emulator-handover.lua" Enter
-}
-
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     declare -F log >/dev/null || function log() {
@@ -23,7 +13,14 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
     set -a
     source "${SCRIPT_DIR}/config/lte-config.sh"
+    source "${SCRIPT_DIR}/setup-moongen.sh"
+    source "${SCRIPT_DIR}/quic-opensand-emulation/env.sh"
+    source "${SCRIPT_DIR}/quic-opensand-emulation/setup-opensand.sh"
+    source "${SCRIPT_DIR}/quic-opensand-emulation/opensand.sh"
     set +a
 
+    _osnd_create_emulation_output_dir
+    _osnd_create_emulation_tmp_dir
+    osnd_setup_opensand "$@"
     moon_setup_moongen "$@"
 fi

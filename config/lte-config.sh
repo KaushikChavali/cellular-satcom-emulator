@@ -35,4 +35,4 @@ TMUX_INIT_WAIT=0.1
 # Seconds to wait after modifying the testbed
 CMD_CONFIG_PAUSE=0.5
 # Name of the tmux socket to run all the sessions on
-TMUX_SOCKET="moongen"
+TMUX_SOCKET="opensand"
