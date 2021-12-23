@@ -56,9 +56,12 @@ function _moon_setup_add_namespaces() {
     sudo ip netns exec osnd-moon-svgw ip link set dev gw4 master br-svgw
 }
 
-# _moon_setup_ip_config()
+# _moon_setup_ip_config(iw_sv, iw_cl)
 function _moon_setup_ip_config() {
     log D "Configuring ip addresses and routes"
+
+    local iw_sv="$1"
+    local iw_cl="$2"
 
     # Configure IP addresses
     sudo ip netns exec osnd-moon-cl ip addr add ${CL_LAN_CLIENT_IP_MG} dev ue3
@@ -79,8 +82,8 @@ function _moon_setup_ip_config() {
     sudo ip netns exec osnd-moon-svgw ip link set br-svgw up
 
     # Add routes
-    sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_CLIENT_IP_MG%%/*}
-    sudo ip netns exec osnd-moon-sv ip route add default via ${SV_LAN_SERVER_IP%%/*}
+    sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_CLIENT_IP_MG%%/*} proto static initcwnd ${iw_cl}
+    sudo ip netns exec osnd-moon-sv ip route add default via ${SV_LAN_SERVER_IP%%/*} proto static initcwnd ${iw_sv}
 }
 
 # _moon_setup_virtual_switch()
@@ -125,9 +128,11 @@ function _moon_setup_ground_delay() {
 # Create the namespaces and all links within them for the emulation setup.
 function moon_setup_namespaces() {
     local delay="${1:-0}"
+    local iw_sv="${2:-10}"
+    local iw_cl="${3:-10}"
 
     _moon_setup_add_namespaces
-    _moon_setup_ip_config
+    _moon_setup_ip_config "$iw_sv" "$iw_cl"
     _moon_setup_virtual_switch
     _moon_setup_ground_delay "$delay"
 }

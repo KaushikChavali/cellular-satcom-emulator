@@ -32,13 +32,15 @@ function osnd_moon_setup_namespaces() {
     sudo ip netns exec osnd-moon-svgw ip link set gw3 up
 }
 
-# osnd_moon_config_routes(lte, satcom)
+# osnd_moon_config_routes(lte, iw_sv, iw_cl)
 # Configure routes from the client to the server based on the chosen
-# path via LTE or SATCOM link.
+# path via LTE or SATCOM link. (default via SATCOM)
 function osnd_moon_config_routes() {
     local lte="$1"
+    local iw_sv="$2"
+    local iw_cl="$3"
 
-    # Delete route through the LTE link
+    # Delete routes through the LTE link
     sudo ip netns exec osnd-moon-cl ip route del default via ${CL_LAN_CLIENT_IP_MG%%/*}
     sudo ip netns exec osnd-moon-sv ip route del default via ${SV_LAN_SERVER_IP%%/*}
 
@@ -57,9 +59,26 @@ function osnd_moon_config_routes() {
     fi
 }
 
+# _osnd_moon_setup_ground_delay(delay_ms)
+_osnd_moon_setup_ground_delay() {
+    local delay_ms="$1"
+
+    log D "Configuring ground delay"
+
+    if [ "$delay_ms" -ne "0" ]; then
+        sudo ip netns exec osnd-moon-cl tc qdisc replace dev st3 handle 1:0 root netem delay ${delay_ms}ms
+        sudo ip netns exec osnd-stp tc qdisc replace dev st2 handle 1:0 root netem delay ${delay_ms}ms
+        sudo ip netns exec osnd-moon-svgw tc qdisc replace dev gw4 handle 1:0 root netem delay ${delay_ms}ms
+        sudo ip netns exec osnd-moon-sv tc qdisc replace dev gw5 handle 1:0 root netem delay ${delay_ms}ms
+    fi
+}
+
 # osnd_moon_build_testbed()
 function osnd_moon_build_testbed() {
-    local lte="true"
+    local lte="false"
+    local delay="${1:-0}"
+    local iw_sv="${3:-10}"
+    local iw_cl="${4:-10}"
 
     osnd_setup_namespaces "$@"
     sleep $CMD_CONFIG_PAUSE
@@ -73,7 +92,9 @@ function osnd_moon_build_testbed() {
     osnd_moon_setup_namespaces
     sleep $CMD_CONFIG_PAUSE
 
-    osnd_moon_config_routes "$lte"
+    osnd_moon_config_routes "$lte" "$iw_sv" "$iw_cl"
+
+    _osnd_moon_setup_ground_delay "$delay"
 }
 
 # If script is executed directly
