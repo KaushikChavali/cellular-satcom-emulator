@@ -91,7 +91,7 @@ function osnd_moon_setup() {
 	local output_dir="${2:-.}"
 	local run_id="${3:-manual}"
 	local pep="${4:-false}"
-	local lte="${5:-false}" # new
+	local lte="${5:-true}"
 
 	# Extract associative array with defaults
 	local cc_cl="${scenario_config_ref['cc_cl']:-reno}"

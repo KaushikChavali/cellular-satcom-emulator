@@ -7,6 +7,10 @@ function osnd_reconfig_namespaces() {
     # Teardown OpenSAND client and server
     sudo ip netns del osnd-cl
     sudo ip netns del osnd-sv
+
+    # Setup dummy namespaces for sanity
+    sudo ip netns add osnd-cl
+    sudo ip netns add osnd-sv
 }
 
 # osnd_moon_setup_namespaces()
@@ -34,7 +38,7 @@ function osnd_moon_setup_namespaces() {
 
 # osnd_moon_config_routes(lte, iw_sv, iw_cl)
 # Configure routes from the client to the server based on the chosen
-# path via LTE or SATCOM link. (default via SATCOM)
+# path via LTE (default) or SATCOM link.
 function osnd_moon_config_routes() {
     local lte="$1"
     local iw_sv="$2"

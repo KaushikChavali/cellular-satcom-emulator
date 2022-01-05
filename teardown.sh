@@ -32,7 +32,7 @@ function osnd_moon_teardown() {
     sleep $CMD_SHUTDOWN_WAIT
     moon_teardown_moongen
     sleep $CMD_SHUTDOWN_WAIT
-    _osnd_moon_teardown_capture
+    # _osnd_moon_teardown_capture
     osnd_teardown_namespaces
     moon_teardown_namespaces
     log D "Environment teared down"

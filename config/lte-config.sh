@@ -8,6 +8,10 @@
 MOONGEN_BIN="$HOME/MoonGen/build/MoonGen"
 # MoonGen LTE script dir
 MOONGEN_SCRIPT_DIR="$HOME/MoonGen/examples"
+# OpenSAND directory
+OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
+# chromium python script
+HTTP_SCRIPT="${OSND_DIR}/run_http_measurements.py"
 
 # LTE network config
 
