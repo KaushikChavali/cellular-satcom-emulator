@@ -2,12 +2,15 @@
 
 # moon_setup_moongen()
 function moon_setup_moongen() {
+    local output_dir="${2:-.}"
+    local run_id="${3:-manual}"
+
     # Start MoonGen LTE emulation
     log D "Emulating LTE link with defaults"
     sudo killall lte-emulation -q
     tmux -L ${TMUX_SOCKET} new-session -s lte-emulation -d "sudo bash"
     sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t lte-emulation "sudo ${MOONGEN_BIN} ${MOONGEN_SCRIPT_DIR}/lte-emulator-handover.lua" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t lte-emulation "sudo ${MOONGEN_BIN} ${MOONGEN_SCRIPT_DIR}/lte-emulator-handover.lua > '${output_dir}/${run_id}_moongen.log'" Enter
 }
 
 # If script is executed directly

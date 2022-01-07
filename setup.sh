@@ -134,7 +134,7 @@ function osnd_moon_setup() {
 	sleep 1
 	osnd_setup_opensand "$delay_gw" "$delay_st" "$attenuation" "$modulation_id"
 	sleep 1
-	moon_setup_moongen
+	moon_setup_moongen "$output_dir" "$run_id"
 	sleep 10
 
 	if [ "$dump" -gt 0 ]; then
