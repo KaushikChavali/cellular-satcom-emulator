@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.0.0"
+export SCRIPT_VERSION="2.0.1"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
 
@@ -253,8 +253,10 @@ function _osnd_moon_generate_scenarios() {
 								for loss in "${packet_losses[@]}"; do
 									for iw in "${iws[@]}"; do
 										for ack_freq in "${ack_freqs[@]}"; do
-											local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file}"
-											echo "$common_options $scenario_options" >>"$scenario_file"
+											for bw in "{iperf_bw[@]}"; do
+												local scenario_options="-b ${bw} -O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file}"
+												echo "$common_options $scenario_options" >>"$scenario_file"
+											done
 										done
 									done
 								done
@@ -541,6 +543,7 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['qlog_file']="${EMULATION_DIR}/client.qlog,${EMULATION_DIR}/server.qlog"
 
 		scenario_config['route_via_lte']="true"
+		scenario_config['bw']="20M,5M"
 
 		_osnd_moon_read_scenario scenario_config "$scenario"
 		local read_status=$?
@@ -599,6 +602,11 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['qlog_file_client']="${qlog_files[0]}"
 		scenario_config['qlog_file_server']="${qlog_files[1]}"
 
+		local -a bw_vals=()
+		IFS=',' read -ra bw_vals <<<"${scenario_config['bw']}"
+		scenario_config['bw_ul']="${bw_vals[0]}"
+		scenario_config['bw_dl']="${bw_vals[1]}"
+
 		# Execute scenario
 		echo "${scenario_config['id']} $scenario" >>"${EMULATION_DIR}/scenarios.txt"
 		_osnd_moon_exec_scenario_with_config scenario_config
@@ -620,6 +628,7 @@ General:
 Scenario configuration:
   -A <#,>    csl of attenuations to measure (default: 0db)
   -B <#,>*   QUIC-specific: csl of two qperf transfer buffer sizes for G and T (default: 1M)
+  -b <#,>	 Generated iPerf bandwith vis-à-vis the defined QoS requirements [UL/DL] (default: 20M,5M)
   -c         Route traffic via the cellular/LTE link (default)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -D #       dump the first # packets of a measurement
@@ -676,8 +685,9 @@ function _osnd_moon_parse_args() {
 	local -a new_delays=()
 	local -a new_quicly_iw_sizes=()
 	local -a new_quicly_ack_freq=()
+	local -a new_iperf_bw=()
 	local measure_cli_args="false"
-	while getopts "c:f:hst:vA:B:C:D:E:F:HI:l:L:N:O:P:Q:T:U:VWXYZ" opt; do
+	while getopts "b:c:f:hst:vA:B:C:D:E:F:HI:l:L:N:O:P:Q:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -687,6 +697,14 @@ function _osnd_moon_parse_args() {
 		fi
 
 		case "$opt" in
+		b)
+			IFS=',' read -ra generated_ipef_bw <<<"$OPTARG"
+			if [[ "${#generated_ipef_bw[@]}" != 2 ]]; then
+				echo "Need exactly two bandwith values for UL and DL, respectively, ${#generated_ipef_bw[@]} given in '$OPTARG'"
+				exit 1
+			fi
+			new_iperf_bw+=("$OPTARG")
+			;;
 		c)
 			route_via_lte=false
 			;;
@@ -924,6 +942,9 @@ function _osnd_moon_parse_args() {
 	if [[ "${#new_quicly_ack_freq[@]}" > 0 ]]; then
 		ack_freqs=("${new_quicly_ack_freq[@]}")
 	fi
+	if [[ "${#new_iperf_bw[@]}" > 0 ]]; then
+		iperf_bw=("${new_iperf_bw[@]}")
+	fi
 }
 
 function _main() {
@@ -937,6 +958,7 @@ function _main() {
 	declare -a packet_losses=(0)
 	declare -a iws=("10,10,10,10")
 	declare -a ack_freqs=("25,1000,8")
+	declare -a iperf_bw=("20M,5M")
 
 	_osnd_moon_parse_args "$@"
 

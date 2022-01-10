@@ -1,16 +1,17 @@
 #!/bin/bash
 
-# _osnd_moon_iperf_measure(output_dir, run_id, measure_secs, timeout)
+# _osnd_moon_iperf_measure(output_dir, run_id, bandwidth, measure_secs, timeout)
 function _osnd_moon_iperf_measure() {
     local output_dir="$1"
     local run_id="$2"
-    local measure_secs="$3"
-    local timeout="$4"
+    local bandwidth="$3"
+    local measure_secs="$4"
+    local timeout="$5"
 
     log I "Running iperf client"
     sudo timeout --foreground $timeout \
         ip netns exec osnd-moon-cl \
-        ${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile "${output_dir}/${run_id}_client.json"
+        ${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b $bandwidth -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile "${output_dir}/${run_id}_client.json"
     status=$?
 
     # Check for error, report if any
@@ -171,6 +172,8 @@ function osnd_moon_measure_tcp_goodput() {
     local -n scenario_config_ref=$scenario_config_name
     local base_run_id="tcp"
     local name_ext=""
+    local bw_ul="${scenario_config_ref['bw_ul']}"
+    local bw_dl="${scenario_config_ref['bw_dl']}"
 
     if [[ "$pep" == true ]]; then
         base_run_id="${base_run_id}_pep"
@@ -196,7 +199,7 @@ function osnd_moon_measure_tcp_goodput() {
         fi
 
         # Client
-        _osnd_moon_iperf_measure "$output_dir" "$run_id" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
+        _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
         sleep $MEASURE_GRACE
 
         # Cleanup

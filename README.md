@@ -108,6 +108,7 @@ executed, each being measured 5 times.
 | Name | Argument   | Description | Default | Type |
 | ---- | ---------- | --- | --- | --- |
 | `-A` | `<#,>`     | Comma separated list of attenuation values to measure | `0` | E |
+| `-b` | `<#,>`     | Generated iPerf bandwith vis-à-vis the defined QoS requirements (UL,DL) | `20M,5M` | T |
 | `-B` | `<GT,>*`   | `QUIC-specific:` Comma separated list of two qperf transfer buffer sizes for gateway and terminal. Repeat parameter for multiple configurations | `1M,1M` | T |
 | `-c` |            | `Joint Emulator-specific:` Configure routes via either cellular link (default) or via SATCOM link | `true`| J |
 | `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. (c = cubic, r = reno) | `rrrr` | T |
