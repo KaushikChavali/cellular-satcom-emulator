@@ -134,5 +134,9 @@ def process_hypatia_delays():
         print("Processing complete.")
 
 
-if __name__ == "__main__":
+def main():
     process_hypatia_delays()
+
+
+if __name__ == "__main__":
+    main()
