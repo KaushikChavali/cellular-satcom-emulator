@@ -10,11 +10,11 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     }
 
     export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-
+    export CONFIG_DIR="${SCRIPT_DIR}/config"
+    export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
     set -a
-    source "${SCRIPT_DIR}/config/lte-config.sh"
-    source "${SCRIPT_DIR}/quic-opensand-emulation/env.sh"
-    source "${SCRIPT_DIR}/quic-opensand-emulation/teardown-opensand.sh"
+    source "${CONFIG_DIR}/testbed-config.sh"
+    source "${OSND_DIR}/teardown-opensand.sh"
     source "${SCRIPT_DIR}/teardown-moongen.sh"
     set +a
 

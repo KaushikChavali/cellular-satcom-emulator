@@ -10,13 +10,13 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     }
 
     export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-
+    export CONFIG_DIR="${SCRIPT_DIR}/config"
+    export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
     set -a
-    source "${SCRIPT_DIR}/config/lte-config.sh"
+    source "${CONFIG_DIR}/testbed-config.sh"
     source "${SCRIPT_DIR}/setup-moongen.sh"
-    source "${SCRIPT_DIR}/quic-opensand-emulation/env.sh"
-    source "${SCRIPT_DIR}/quic-opensand-emulation/setup-opensand.sh"
-    source "${SCRIPT_DIR}/quic-opensand-emulation/opensand.sh"
+    source "${OSND_DIR}/setup-opensand.sh"
+    source "${OSND_DIR}/opensand.sh"
     set +a
 
     _osnd_create_emulation_output_dir

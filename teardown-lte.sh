@@ -46,8 +46,9 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
     export SCRIPT_VERSION="manual"
     export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+    export CONFIG_DIR="${SCRIPT_DIR}/config"
     set -a
-    source "${SCRIPT_DIR}/config/lte-config.sh"
+    source "${CONFIG_DIR}/testbed-config.sh"
     set +a
     source "${SCRIPT_DIR}/teardown-moongen.sh"
     source "${SCRIPT_DIR}/teardown-lte-namespaces.sh"

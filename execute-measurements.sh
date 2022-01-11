@@ -3,13 +3,13 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.0.1"
+export SCRIPT_VERSION="2.0.2"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
 
 set -o allexport
-source "${SCRIPT_DIR}/config/lte-config.sh"
-source "${OSND_DIR}/env.sh"
+source "${CONFIG_DIR}/testbed-config.sh"
 set +o allexport
 
 source "${OSND_DIR}/setup.sh"
