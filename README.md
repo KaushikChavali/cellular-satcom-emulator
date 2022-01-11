@@ -115,6 +115,7 @@ executed, each being measured 5 times.
 | `-D` | `#`        | dump the first # packets of a measurement | | M |
 | `-E` | `<GT,>`    | csl of two delay values: each one value or multiple seconds-delay values | `125` | M |
 | `-F` | `<#,>*`    | `QUIC-specific:` csl of three values: max. ACK Delay, packet no. after which first ack frequency packet is sent, fraction of CWND to be used in ACK frequency frame | `25, 1000, 8` | T |
+| `-H` |            | Disable HTTP measurements | | M | 
 | `-I` | `<#,>*`    | csl of four initial window sizes for SGTC | `10` | T |
 | `-l` | `<#,>`     | `QUIC-specific:` csl of two file paths for qlog file output: client, server | `server.qlog und client.qlog in output directory` | T |
 | `-L` | `<#,>`     | percentages of packets to be dropped | `0` | M |

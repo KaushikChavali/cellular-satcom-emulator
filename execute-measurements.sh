@@ -279,7 +279,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:B:cC:D:E:F:HI:M:N:l:L:O:P:Q:T:U:VWXYZ" -l "attenuation:,transport-buffers:,disable-lte-route,congestion-control:,dump:,modulation:,runs:,orbits:,prime:,quicly-buffers:,timing-runs:,delay:,loss:,initial-window:,udp-buffers:,ack-frequency:,qlog-file:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp,disable-http" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:cC:D:E:F:HI:M:N:l:L:O:P:Q:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,disable-lte-route,congestion-control:,dump:,modulation:,runs:,orbits:,prime:,quicly-buffers:,timing-runs:,delay:,loss:,initial-window:,udp-buffers:,ack-frequency:,qlog-file:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp,disable-http" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -291,6 +291,10 @@ function _osnd_moon_read_scenario() {
 		case "$1" in
 		-A | --attenuation)
 			config_ref['attenuation']="$2"
+			shift 2
+			;;
+		-b | --iperf-bandwidth)
+			config_ref['bw']="$2"
 			shift 2
 			;;
 		-B | --transport-buffers)
@@ -628,8 +632,8 @@ General:
 Scenario configuration:
   -A <#,>    csl of attenuations to measure (default: 0db)
   -B <#,>*   QUIC-specific: csl of two qperf transfer buffer sizes for G and T (default: 1M)
-  -b <#,>	 Generated iPerf bandwith vis-à-vis the defined QoS requirements [UL/DL] (default: 20M,5M)
-  -c         Route traffic via the cellular/LTE link (default)
+  -b <#,>	 iPerf bandwith vis-à-vis the defined QoS requirements [UL/DL] (default: 20M,5M)
+  -c         route traffic via the cellular/LTE link (default)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -D #       dump the first # packets of a measurement
   -E <GT,>   csl of two delay values: each one value or multiple seconds-delay values (default: 125)
