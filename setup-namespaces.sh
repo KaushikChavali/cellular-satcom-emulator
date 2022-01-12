@@ -8,7 +8,7 @@ function osnd_reconfig_namespaces() {
     sudo ip netns del osnd-cl
     sudo ip netns del osnd-sv
 
-    # Setup dummy namespaces for sanity
+    # Setup dummy namespaces (not used) for sanity
     sudo ip netns add osnd-cl
     sudo ip netns add osnd-sv
 }
@@ -38,7 +38,7 @@ function osnd_moon_setup_namespaces() {
 
 # osnd_moon_config_routes(route, iw_sv, iw_cl)
 # Configure routes from the client to the server according to the selected
-# routing strategy, i.e., LTE (default) | SATCOM | Multipath (MP).
+# routing strategy, i.e., LTE (default) | SATCOM (SAT) | Multipath (MP).
 function osnd_moon_config_routes() {
     local route="$1"
     local iw_sv="$2"
@@ -54,11 +54,34 @@ function osnd_moon_config_routes() {
         sudo ip netns exec osnd-moon-cl ip route add ${SV_LAN_NET} via ${CL_LAN_CLIENT_IP_MG%%/*}
         sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_ROUTER_IP%%/*}
         sudo ip netns exec osnd-moon-sv ip route add default via ${SV_LAN_SERVER_IP%%/*}
-    else
+    elif [[ "$route" == "SAT" ]]; then
         # Add routes via SATCOM link
         log D "Setting up routes via OpenSAND SATCOM emulator"
         sudo ip netns exec osnd-moon-cl ip route add ${SV_LAN_NET} via ${CL_LAN_ROUTER_IP%%/*}
         sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_CLIENT_IP_MG%%/*}
+        sudo ip netns exec osnd-moon-sv ip route add default via ${SV_LAN_ROUTER_IP%%/*}
+    else
+        # Configure multi-path routing
+        # Ref.: https://multipath-tcp.org/pmwiki.php/Users/ConfigureRouting
+
+        log D "Configuring multi-path routes via LTE and SATCOM links"
+
+        # Two different routing tables based on the source-address
+        # table 1: LTE (ue3),  table 2: SATCOM (st3)
+        sudo ip netns exec osnd-moon-cl ip rule add from ${CL_LAN_CLIENT_IP_MG%%/*} table 1
+        sudo ip netns exec osnd-moon-cl ip rule add from ${CL_LAN_CLIENT_IP%%/*} table 2
+
+        # Configure the two different routing tables
+        sudo ip netns exec osnd-moon-cl ip route add ${CL_LAN_NET_MG} dev ue3 scope link table 1
+        sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_CLIENT_IP%%/*} dev ue3 table 1
+
+        sudo ip netns exec osnd-moon-cl ip route add ${CL_LAN_NET} dev st3 scope link table 2
+        sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_ROUTER_IP%%/*} dev st3 table 2
+
+        # Default route for the selection process of normal traffic
+        sudo ip netns exec osnd-moon-cl ip route add default scope global nexthop via ${CL_LAN_CLIENT_IP%%/*} dev ue3
+
+        # Configure route at the server
         sudo ip netns exec osnd-moon-sv ip route add default via ${SV_LAN_ROUTER_IP%%/*}
     fi
 }
