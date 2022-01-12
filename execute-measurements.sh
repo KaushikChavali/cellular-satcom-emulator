@@ -239,9 +239,6 @@ function _osnd_moon_generate_scenarios() {
 	if [[ ${#qlog_file} -le 0 ]]; then
 		qlog_file="${EMULATION_DIR}/client.qlog,${EMULATION_DIR}/server.qlog"
 	fi
-	if [[ "$route_via_lte" != "true" ]]; then
-		common_options="$common_options -c"
-	fi
 
 	for orbit in "${orbits[@]}"; do
 		for attenuation in "${attenuations[@]}"; do
@@ -254,8 +251,10 @@ function _osnd_moon_generate_scenarios() {
 									for iw in "${iws[@]}"; do
 										for ack_freq in "${ack_freqs[@]}"; do
 											for bw in "{iperf_bw[@]}"; do
-												local scenario_options="-b ${bw} -O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file}"
-												echo "$common_options $scenario_options" >>"$scenario_file"
+												for route in "{routing_strategy[@]}"; do
+													local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route}"
+													echo "$common_options $scenario_options" >>"$scenario_file"
+												done
 											done
 										done
 									done
@@ -279,7 +278,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:cC:D:E:F:HI:M:N:l:L:O:P:Q:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,disable-lte-route,congestion-control:,dump:,modulation:,runs:,orbits:,prime:,quicly-buffers:,timing-runs:,delay:,loss:,initial-window:,udp-buffers:,ack-frequency:,qlog-file:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp,disable-http" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:C:D:E:F:HI:M:N:l:L:O:P:Q:r:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,congestion-control:,dump:,modulation:,runs:,orbits:,prime:,quicly-buffers:,routing-strategy:,timing-runs:,delay:,loss:,initial-window:,udp-buffers:,ack-frequency:,qlog-file:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp,disable-http" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -300,10 +299,6 @@ function _osnd_moon_read_scenario() {
 		-B | --transport-buffers)
 			config_ref['tbs']="$2"
 			shift 2
-			;;
-		-c | --disable-lte-route)
-			config_ref['route_via_lte']="false"
-			shift 1
 			;;
 		-C | --congestion-control)
 			config_ref['ccs']="$2"
@@ -355,6 +350,10 @@ function _osnd_moon_read_scenario() {
 			;;
 		-Q | --quicly-buffers)
 			config_ref['qbs']="$2"
+			shift 2
+			;;
+		-r | --routing-strategy)
+			config_ref['route']="$2"
 			shift 2
 			;;
 		-T | --timing-runs)
@@ -423,7 +422,7 @@ function _osnd_moon_exec_scenario_with_config() {
 	local run_timing_cnt=${config_ref['timing_runs']:-2}
 
 	if [[ "${config_ref['exec_ping']:-true}" == true ]]; then
-		if [[ "${config_ref['route_via_lte']:-true}" == true ]]; then
+		if [[ "${config_ref['route']}" == "LTE" ]]; then
 			osnd_moon_measure_ping "$config_name" "$measure_output_dir" true
 		else
 			osnd_moon_measure_ping "$config_name" "$measure_output_dir" false
@@ -431,7 +430,7 @@ function _osnd_moon_exec_scenario_with_config() {
 	fi
 
 	if [[ "${config_ref['exec_quic']:-true}" == true ]]; then
-		if [[ "${config_ref['route_via_lte']:-true}" == true ]]; then
+		if [[ "${config_ref['route']}" == "LTE" ]]; then
 			osnd_moon_measure_quic_goodput "$config_name" "$measure_output_dir" false true $run_cnt
 			osnd_moon_measure_quic_timing "$config_name" "$measure_output_dir" false true $run_timing_cnt
 		else
@@ -447,7 +446,7 @@ function _osnd_moon_exec_scenario_with_config() {
 	fi
 
 	if [[ "${config_ref['exec_tcp']:-true}" == true ]]; then
-		if [[ "${config_ref['route_via_lte']:-true}" == true ]]; then
+		if [[ "${config_ref['route']}" == "LTE" ]]; then
 			osnd_moon_measure_tcp_goodput "$config_name" "$measure_output_dir" false true $run_cnt
 			osnd_moon_measure_tcp_timing "$config_name" "$measure_output_dir" false true $run_timing_cnt
 		else
@@ -464,7 +463,7 @@ function _osnd_moon_exec_scenario_with_config() {
 
 	if [[ "${config_ref['exec_http']:-true}" == true ]]; then
 		if [[ "${config_ref['exec_tcp']:-true}" == true ]]; then
-			if [[ "${config_ref['route_via_lte']:-true}" == true ]]; then
+			if [[ "${config_ref['route']}" == "LTE" ]]; then
 				osnd_moon_measure_http "$config_name" "$measure_output_dir" false true $run_cnt false
 			else
 				if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
@@ -476,7 +475,7 @@ function _osnd_moon_exec_scenario_with_config() {
 			fi
 		fi
 		if [[ "${config_ref['exec_quic']:-true}" == true ]]; then
-			if [[ "${config_ref['route_via_lte']:-true}" == true ]]; then
+			if [[ "${config_ref['route']}" == "LTE" ]]; then
 				osnd_moon_measure_http "$config_name" "$measure_output_dir" false true $run_cnt true
 			else
 				if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
@@ -546,8 +545,8 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['ack_freq']="25,1000,8"
 		scenario_config['qlog_file']="${EMULATION_DIR}/client.qlog,${EMULATION_DIR}/server.qlog"
 
-		scenario_config['route_via_lte']="true"
 		scenario_config['bw']="20M,5M"
+		scenario_config['route']="LTE"
 
 		_osnd_moon_read_scenario scenario_config "$scenario"
 		local read_status=$?
@@ -633,7 +632,6 @@ Scenario configuration:
   -A <#,>    csl of attenuations to measure (default: 0db)
   -B <#,>*   QUIC-specific: csl of two qperf transfer buffer sizes for G and T (default: 1M)
   -b <#,>	 iPerf bandwith vis-à-vis the defined QoS requirements [UL/DL] (default: 20M,5M)
-  -c         route traffic via the cellular/LTE link (default)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -D #       dump the first # packets of a measurement
   -E <GT,>   csl of two delay values: each one value or multiple seconds-delay values (default: 125)
@@ -646,6 +644,7 @@ Scenario configuration:
   -O <#,>    csl of orbits to measure (GEO|MEO|LEO) (default: GEO)
   -P #       seconds to prime a new environment with some pings (default: 5)
   -Q <#,>*   QUIC-specific: csl of four qperf quicly buffer sizes for SGTC (default: 1M)
+  -r <#,>	 Select a routing strategy (LTE|SAT|MP) (default: LTE)
   -T #       number of timing measurements per config (default: 4)
   -U <#,>*   QUIC-specific: csl of four qperf udp buffer sizes for SGTC (default: 1M)
   -V         disable plain (non pep) measurements
@@ -681,7 +680,6 @@ function _osnd_moon_parse_args() {
 	scenario_file=""
 	dump_packets=0
 	qlog_file=""
-	route_via_lte=true
 
 	local -a new_transfer_buffer_sizes=()
 	local -a new_quicly_buffer_sizes=()
@@ -691,7 +689,7 @@ function _osnd_moon_parse_args() {
 	local -a new_quicly_ack_freq=()
 	local -a new_iperf_bw=()
 	local measure_cli_args="false"
-	while getopts "b:c:f:hst:vA:B:C:D:E:F:HI:l:L:N:O:P:Q:T:U:VWXYZ" opt; do
+	while getopts "b:f:hr:st:vA:B:C:D:E:F:HI:l:L:N:O:P:Q:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -709,9 +707,6 @@ function _osnd_moon_parse_args() {
 			fi
 			new_iperf_bw+=("$OPTARG")
 			;;
-		c)
-			route_via_lte=false
-			;;
 		f)
 			if [[ "$measure_cli_args" == "true" ]]; then
 				echo >&2 "Cannot set scenario file and configure measurements with cli args at the same time"
@@ -722,6 +717,9 @@ function _osnd_moon_parse_args() {
 		h)
 			_osnd_moon_print_usage "$0"
 			exit 0
+			;;
+		r)
+			IFS=',' read -ra routing_strategy <<<"$OPTARG"
 			;;
 		s)
 			show_stats=true
@@ -963,6 +961,7 @@ function _main() {
 	declare -a iws=("10,10,10,10")
 	declare -a ack_freqs=("25,1000,8")
 	declare -a iperf_bw=("20M,5M")
+	declare -a routing_strategy=("LTE")
 
 	_osnd_moon_parse_args "$@"
 
@@ -986,7 +985,7 @@ function _main() {
 	trap _osnd_moon_abort_measurements EXIT
 	trap _osnd_moon_interrupt_measurements SIGINT
 
-	_osnd_moon_run_scenarios 2> >(log E -)
+	2> >(log E -)
 
 	trap - SIGINT
 	trap - EXIT
