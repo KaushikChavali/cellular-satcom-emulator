@@ -76,7 +76,17 @@ function _osnd_moon_capture() {
 		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
 		sleep $TMUX_INIT_WAIT
 		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i ue3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_ue3.eth'" Enter
+	elif [[ "$route" == "SAT" ]]; then
+		log D "Capturing dump at st3 (SATCOM)"
+		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+		sleep $TMUX_INIT_WAIT
+		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_st3.eth'" Enter
 	else
+		log D "Capturing dump at ue3 (LTE)"
+		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+		sleep $TMUX_INIT_WAIT
+		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i ue3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_ue3.eth'" Enter
+
 		log D "Capturing dump at st3 (SATCOM)"
 		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
 		sleep $TMUX_INIT_WAIT
