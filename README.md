@@ -110,7 +110,6 @@ executed, each being measured 5 times.
 | `-A` | `<#,>`     | Comma separated list of attenuation values to measure | `0` | E |
 | `-b` | `<#,>`     | Generated iPerf bandwith vis-à-vis the defined QoS requirements (UL,DL) | `20M,5M` | T |
 | `-B` | `<GT,>*`   | `QUIC-specific:` Comma separated list of two qperf transfer buffer sizes for gateway and terminal. Repeat parameter for multiple configurations | `1M,1M` | T |
-| `-c` |            | `Joint Emulator-specific:` Configure routes via either cellular link (default) or via SATCOM link | `true`| J |
 | `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. (c = cubic, r = reno) | `rrrr` | T |
 | `-D` | `#`        | dump the first # packets of a measurement | | M |
 | `-E` | `<GT,>`    | csl of two delay values: each one value or multiple seconds-delay values | `125` | M |
@@ -123,6 +122,7 @@ executed, each being measured 5 times.
 | `-O` | `<#,>`     | Comma separated list of orbits to measure (GEO,MEO,LEO) | `GEO` | E |
 | `-P` | `#`        | Number of seconds to prime a new environment with some pings | `5` | M |
 | `-Q` | `<SGTC,>*` | `QUIC-specific:` Comma separated list of four qperf quicly buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` | T |
+| `-r` | `<#,>`     | `Joint Emulator-specific:` Select a routing strategy (LTE,SAT,MP) | `LTE`| J |
 | `-T` | `#`        | Number of runs per timing measurement in a scenario | `4` | M |
 | `-U` | `<SGTC,>*` | `QUIC-specific:` Comma separated list of four qperf udp buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` | T |
 | `-V` |            | Disable plain (non pep) measurements | | M |
