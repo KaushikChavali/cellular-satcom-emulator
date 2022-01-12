@@ -420,70 +420,49 @@ function _osnd_moon_exec_scenario_with_config() {
 
 	local run_cnt=${config_ref['runs']:-1}
 	local run_timing_cnt=${config_ref['timing_runs']:-2}
+	local sel_route=${config_ref['route']:-"LTE"}
 
 	if [[ "${config_ref['exec_ping']:-true}" == true ]]; then
-		if [[ "${config_ref['route']}" == "LTE" ]]; then
-			osnd_moon_measure_ping "$config_name" "$measure_output_dir" true
-		else
-			osnd_moon_measure_ping "$config_name" "$measure_output_dir" false
-		fi
+		osnd_moon_measure_ping "$config_name" "$measure_output_dir" "$sel_route"
 	fi
 
 	if [[ "${config_ref['exec_quic']:-true}" == true ]]; then
-		if [[ "${config_ref['route']}" == "LTE" ]]; then
-			osnd_moon_measure_quic_goodput "$config_name" "$measure_output_dir" false true $run_cnt
-			osnd_moon_measure_quic_timing "$config_name" "$measure_output_dir" false true $run_timing_cnt
-		else
-			if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
-				osnd_moon_measure_quic_goodput "$config_name" "$measure_output_dir" false false $run_cnt
-				osnd_moon_measure_quic_timing "$config_name" "$measure_output_dir" false false $run_timing_cnt
-			fi
-			if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
-				osnd_moon_measure_quic_goodput "$config_name" "$measure_output_dir" true false $run_cnt
-				osnd_moon_measure_quic_timing "$config_name" "$measure_output_dir" true false $run_timing_cnt
-			fi
+		if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
+			osnd_moon_measure_quic_goodput "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt
+			osnd_moon_measure_quic_timing "$config_name" "$measure_output_dir" false "$sel_route" $run_timing_cnt
+		fi
+		if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
+			osnd_moon_measure_quic_goodput "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
+			osnd_moon_measure_quic_timing "$config_name" "$measure_output_dir" true "$sel_route" $run_timing_cnt
 		fi
 	fi
 
 	if [[ "${config_ref['exec_tcp']:-true}" == true ]]; then
-		if [[ "${config_ref['route']}" == "LTE" ]]; then
-			osnd_moon_measure_tcp_goodput "$config_name" "$measure_output_dir" false true $run_cnt
-			osnd_moon_measure_tcp_timing "$config_name" "$measure_output_dir" false true $run_timing_cnt
-		else
-			if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
-				osnd_moon_measure_tcp_goodput "$config_name" "$measure_output_dir" false false $run_cnt
-				osnd_moon_measure_tcp_timing "$config_name" "$measure_output_dir" false false $run_timing_cnt
-			fi
-			if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
-				osnd_moon_measure_tcp_goodput "$config_name" "$measure_output_dir" true false $run_cnt
-				osnd_moon_measure_tcp_timing "$config_name" "$measure_output_dir" true false $run_timing_cnt
-			fi
+		if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
+			osnd_moon_measure_tcp_goodput "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt
+			osnd_moon_measure_tcp_timing "$config_name" "$measure_output_dir" false "$sel_route" $run_timing_cnt
+		fi
+		if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
+			osnd_moon_measure_tcp_goodput "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
+			osnd_moon_measure_tcp_timing "$config_name" "$measure_output_dir" true "$sel_route" $run_timing_cnt
 		fi
 	fi
 
 	if [[ "${config_ref['exec_http']:-true}" == true ]]; then
 		if [[ "${config_ref['exec_tcp']:-true}" == true ]]; then
-			if [[ "${config_ref['route']}" == "LTE" ]]; then
-				osnd_moon_measure_http "$config_name" "$measure_output_dir" false true $run_cnt false
-			else
-				if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
-					osnd_moon_measure_http "$config_name" "$measure_output_dir" false false $run_cnt false
-				fi
-				if [[ "${config_ref['exec_pep']:-false}" == true ]]; then
-					osnd_moon_measure_http "$config_name" "$measure_output_dir" true false $run_cnt false
-				fi
+			if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
+				osnd_moon_measure_http "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt false
+			fi
+			if [[ "${config_ref['exec_pep']:-false}" == true ]]; then
+				osnd_moon_measure_http "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt false
 			fi
 		fi
 		if [[ "${config_ref['exec_quic']:-true}" == true ]]; then
-			if [[ "${config_ref['route']}" == "LTE" ]]; then
-				osnd_moon_measure_http "$config_name" "$measure_output_dir" false true $run_cnt true
-			else
-				if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
-					osnd_moon_measure_http "$config_name" "$measure_output_dir" false false $run_cnt true
-				fi
-				if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
-					osnd_moon_measure_http "$config_name" "$measure_output_dir" true false $run_cnt true
-				fi
+			if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
+				osnd_moon_measure_http "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt true
+			fi
+			if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
+				osnd_moon_measure_http "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt true
 			fi
 		fi
 	fi

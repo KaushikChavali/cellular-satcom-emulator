@@ -24,19 +24,19 @@ function _osnd_moon_ping_measure() {
     return $status
 }
 
-# osnd_moon_measure_ping(scenario_config_ref, output_dir, lte=true, run_cnt=1)
+# osnd_moon_measure_ping(scenario_config_ref, output_dir, route, run_cnt=1)
 # Run all ping measurements and place the results in output_dir.
 function osnd_moon_measure_ping() {
     local scenario_config_ref=$1
     local output_dir="$2"
-    local lte=${3:-true}
+    local route="$3"
     local run_cnt=${4:-1}
 
     for i in $(seq $run_cnt); do
         log I "Ping run $i/$run_cnt"
         local run_id="ping_$i"
 
-        osnd_moon_setup $scenario_config_ref "$output_dir" "$run_id" "false" "$lte"
+        osnd_moon_setup $scenario_config_ref "$output_dir" "$run_id" "false" "$route"
         sleep $MEASURE_WAIT
         _osnd_moon_ping_measure "$output_dir" "$run_id"
         sleep $MEASURE_GRACE

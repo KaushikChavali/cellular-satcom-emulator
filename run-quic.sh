@@ -144,13 +144,13 @@ function _osnd_quic_proxies_stop() {
     tmux -L ${TMUX_SOCKET} kill-session -t qperf-proxy-st >/dev/null 2>&1
 }
 
-# _osnd_moon_measure_quic(scenario_config_name, output_dir, pep=false, timing=false, lte=true, run_cnt=5)
+# _osnd_moon_measure_quic(scenario_config_name, output_dir, pep=false, timing=false, route, run_cnt=5)
 function _osnd_moon_measure_quic() {
     local scenario_config_name=$1
     local output_dir="$2"
     local pep=${3:-false}
     local timing=${4:-false}
-    local lte=${5:-true}
+    local route="$5"
     local run_cnt=${6:-5}
 
     local -n scenario_config_ref=$scenario_config_name
@@ -177,7 +177,7 @@ function _osnd_moon_measure_quic() {
         local run_id="${base_run_id}_$i"
 
         # Environment
-        osnd_moon_setup $scenario_config_name "$output_dir" "$run_id" "$pep" "$lte"
+        osnd_moon_setup $scenario_config_name "$output_dir" "$run_id" "$pep" "$route"
         sleep $MEASURE_WAIT
 
         # Server
@@ -205,28 +205,28 @@ function _osnd_moon_measure_quic() {
     done
 }
 
-# osnd_moon_run_quic_goodput(scenario_config_name, output_dir, pep=false, lte=true, run_cnt=4)
+# osnd_moon_run_quic_goodput(scenario_config_name, output_dir, pep=false, route, run_cnt=4)
 # Run QUIC goodput measurements on the emulation environment
 function osnd_moon_measure_quic_goodput() {
     local scenario_config_name=$1
     local output_dir="$2"
     local pep=${3:-false}
-    local lte=${4:-true}
+    local route="$4"
     local run_cnt=${5:-4}
 
-    _osnd_moon_measure_quic $scenario_config_name "$output_dir" $pep false $lte $run_cnt
+    _osnd_moon_measure_quic $scenario_config_name "$output_dir" $pep false "$route" $run_cnt
 }
 
-# osnd_moon_run_quic_ttfb(scenario_config_name, output_dir, pep=false, run_cnt=12)
+# osnd_moon_run_quic_ttfb(scenario_config_name, output_dir, pep=false, route, run_cnt=12)
 # Run QUIC timing measurements on the emulation environment
 function osnd_moon_measure_quic_timing() {
     local scenario_config_name=$1
     local output_dir="$2"
     local pep=${3:-false}
-    local lte=${4:-true}
+    local route="$4"
     local run_cnt=${5:-12}
 
-    _osnd_moon_measure_quic $scenario_config_name "$output_dir" $pep true $lte $run_cnt
+    _osnd_moon_measure_quic $scenario_config_name "$output_dir" $pep true "$route" $run_cnt
 }
 
 # If script is executed directly

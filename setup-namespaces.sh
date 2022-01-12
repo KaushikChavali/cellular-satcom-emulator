@@ -36,11 +36,11 @@ function osnd_moon_setup_namespaces() {
     sudo ip netns exec osnd-moon-svgw ip link set gw3 up
 }
 
-# osnd_moon_config_routes(lte, iw_sv, iw_cl)
-# Configure routes from the client to the server based on the chosen
-# path via LTE (default) or SATCOM link.
+# osnd_moon_config_routes(route, iw_sv, iw_cl)
+# Configure routes from the client to the server according to the selected
+# routing strategy, i.e., LTE (default) | SATCOM | Multipath (MP).
 function osnd_moon_config_routes() {
-    local lte="$1"
+    local route="$1"
     local iw_sv="$2"
     local iw_cl="$3"
 
@@ -48,7 +48,7 @@ function osnd_moon_config_routes() {
     sudo ip netns exec osnd-moon-cl ip route del default via ${CL_LAN_CLIENT_IP_MG%%/*}
     sudo ip netns exec osnd-moon-sv ip route del default via ${SV_LAN_SERVER_IP%%/*}
 
-    if [[ "$lte" == true ]]; then
+    if [[ "$route" == "LTE" ]]; then
         # Add route via LTE link
         log D "Setting up routes via MoonGen LTE emulator"
         sudo ip netns exec osnd-moon-cl ip route add ${SV_LAN_NET} via ${CL_LAN_CLIENT_IP_MG%%/*}
@@ -79,7 +79,7 @@ _osnd_moon_setup_ground_delay() {
 
 # osnd_moon_build_testbed()
 function osnd_moon_build_testbed() {
-    local lte="false"
+    local route="LTE"
     local delay="${1:-0}"
     local iw_sv="${3:-10}"
     local iw_cl="${4:-10}"
@@ -96,7 +96,7 @@ function osnd_moon_build_testbed() {
     osnd_moon_setup_namespaces
     sleep $CMD_CONFIG_PAUSE
 
-    osnd_moon_config_routes "$lte" "$iw_sv" "$iw_cl"
+    osnd_moon_config_routes "$route" "$iw_sv" "$iw_cl"
 
     _osnd_moon_setup_ground_delay "$delay"
 }

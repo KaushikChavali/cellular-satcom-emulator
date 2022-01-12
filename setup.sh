@@ -42,13 +42,13 @@ function _osnd_moon_prime_env() {
 		ping -n -W 8 -c $(echo "$seconds * 100" | bc -l) -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >/dev/null
 }
 
-# _osnd_moon_capture(output_dir, run_id, pep, lte, capture_nr)
+# _osnd_moon_capture(output_dir, run_id, pep, route, capture_nr)
 # Start capturing packets
 function _osnd_moon_capture() {
 	local output_dir="$1"
 	local run_id="$2"
 	local pep="$3"
-	local lte="$4" # new
+	local route="$4"
 	local capture="$5"
 
 	log D "Starting tcpdump"
@@ -71,16 +71,16 @@ function _osnd_moon_capture() {
 	fi
 
 	# Client
-	if [[ "$lte" == false ]]; then
-		log D "Capturing dump at st3 (SATCOM)"
-		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
-		sleep $TMUX_INIT_WAIT
-		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_st3.eth'" Enter
-	else
+	if [[ "$route" == "LTE" ]]; then
 		log D "Capturing dump at ue3 (LTE)"
 		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
 		sleep $TMUX_INIT_WAIT
 		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i ue3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_ue3.eth'" Enter
+	else
+		log D "Capturing dump at st3 (SATCOM)"
+		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+		sleep $TMUX_INIT_WAIT
+		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_st3.eth'" Enter
 	fi
 }
 
@@ -91,7 +91,7 @@ function osnd_moon_setup() {
 	local output_dir="${2:-.}"
 	local run_id="${3:-manual}"
 	local pep="${4:-false}"
-	local lte="${5:-true}"
+	local route="${5:-LTE}"
 
 	# Extract associative array with defaults
 	local cc_cl="${scenario_config_ref['cc_cl']:-reno}"
@@ -126,7 +126,7 @@ function osnd_moon_setup() {
 	sleep 1
 	osnd_moon_setup_namespaces
 	sleep 1
-	osnd_moon_config_routes "$lte" "$iw_sv" "$iw_cl"
+	osnd_moon_config_routes "$route" "$iw_sv" "$iw_cl"
 	sleep 1
 	_osnd_moon_setup_ground_delay "$delay_ground"
 	sleep 1
@@ -138,7 +138,7 @@ function osnd_moon_setup() {
 	sleep 10
 
 	if [ "$dump" -gt 0 ]; then
-		_osnd_moon_capture "$output_dir" "$run_id" "$pep" "$lte" "$dump"
+		_osnd_moon_capture "$output_dir" "$run_id" "$pep" "$route" "$dump"
 	fi
 
 	if (($(echo "$prime > 0" | bc -l))); then

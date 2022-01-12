@@ -61,13 +61,13 @@ function osnd_moon_http_client_stop() {
     sleep $CMD_SHUTDOWN_WAIT
 }
 
-# osnd_moon_measure_http(scenario_config_name, output_dir, pep=false, lte=true, run_cnt=12, quic=false)
+# osnd_moon_measure_http(scenario_config_name, output_dir, pep=false, route, run_cnt=12, quic=false)
 # Run HTTP timing measurements on the emulation environment
 function osnd_moon_measure_http() {
     local scenario_config_name=$1
     local output_dir=$2
     local pep=$3
-    local lte=${4:-true}
+    local route=$4
     local run_cnt=$5
     local quic=${6:-false}
 
@@ -91,7 +91,7 @@ function osnd_moon_measure_http() {
         local run_id="${base_run_id}_$i"
 
         # Environment
-        osnd_moon_setup $scenario_config_name "$output_dir" "$run_id" "$pep" "$lte"
+        osnd_moon_setup $scenario_config_name "$output_dir" "$run_id" "$pep" "$route"
         sleep $MEASURE_WAIT
 
         _osnd_moon_http_server_start output_dir
