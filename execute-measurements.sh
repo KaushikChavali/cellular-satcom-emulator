@@ -252,8 +252,10 @@ function _osnd_moon_generate_scenarios() {
 										for ack_freq in "${ack_freqs[@]}"; do
 											for bw in "{iperf_bw[@]}"; do
 												for route in "{routing_strategy[@]}"; do
-													local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route}"
-													echo "$common_options $scenario_options" >>"$scenario_file"
+													for gds in "{ground_delays[@]}"; do
+														local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route} -g {gds}"
+														echo "$common_options $scenario_options" >>"$scenario_file"
+													done
 												done
 											done
 										done
@@ -278,7 +280,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:C:D:E:F:HI:M:N:l:L:O:P:Q:r:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,congestion-control:,dump:,modulation:,runs:,orbits:,prime:,quicly-buffers:,routing-strategy:,timing-runs:,delay:,loss:,initial-window:,udp-buffers:,ack-frequency:,qlog-file:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp,disable-http" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:C:D:E:F:gHI:M:N:l:L:O:P:Q:r:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,congestion-control:,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,prime:,quicly-buffers:,routing-strategy:,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -314,6 +316,10 @@ function _osnd_moon_read_scenario() {
 			;;
 		-F | --ack-frequency)
 			config_ref['ack_freq']="$2"
+			shift 2
+			;;
+		-g | --ground-delays)
+			config_ref['gds']="$2"
 			shift 2
 			;;
 		-H | --disable-http)
@@ -526,6 +532,7 @@ function _osnd_moon_run_scenarios() {
 
 		scenario_config['bw']="20M,5M"
 		scenario_config['route']="LTE"
+		scenario_config['gds']="0,0"
 
 		_osnd_moon_read_scenario scenario_config "$scenario"
 		local read_status=$?
@@ -589,6 +596,11 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['bw_ul']="${bw_vals[0]}"
 		scenario_config['bw_dl']="${bw_vals[1]}"
 
+		local -a gd_vals=()
+		IFS=',' read -ra gd_vals <<<"${scenario_config['gds']}"
+		scenario_config['delay_cl_sat']="${gd_vals[0]}"
+		scenario_config['delay_cl_lte']="${gd_vals[1]}"
+
 		# Execute scenario
 		echo "${scenario_config['id']} $scenario" >>"${EMULATION_DIR}/scenarios.txt"
 		_osnd_moon_exec_scenario_with_config scenario_config
@@ -614,6 +626,7 @@ Scenario configuration:
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -D #       dump the first # packets of a measurement
   -E <GT,>   csl of two delay values: each one value or multiple seconds-delay values (default: 125)
+  -g <#,>	 csl of ground delays at the client [SAT,LTE] (default: 0,0)
   -H         disable http measurements
   -F <#,>*   QUIC-specific: csl of three values: max. ACK Delay, packet no. after which first ack frequency packet is sent, fraction of CWND to be used in ACK frequency frame (default: 25, 1000, 8)
   -I <#,>*   csl of four initial window sizes for SGTC (default: 10)
@@ -667,8 +680,9 @@ function _osnd_moon_parse_args() {
 	local -a new_quicly_iw_sizes=()
 	local -a new_quicly_ack_freq=()
 	local -a new_iperf_bw=()
+	local -a new_ground_delays=()
 	local measure_cli_args="false"
-	while getopts "b:f:hr:st:vA:B:C:D:E:F:HI:l:L:N:O:P:Q:T:U:VWXYZ" opt; do
+	while getopts "b:f:ghr:st:vA:B:C:D:E:F:HI:l:L:N:O:P:Q:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -692,6 +706,21 @@ function _osnd_moon_parse_args() {
 				exit 1
 			fi
 			scenario_file="$OPTARG"
+			;;
+		g)
+			IFS=',' read -ra ground_delay_values <<<"$OPTARG"
+			if [[ "${#ground_delay_values[@]}" != 2 ]]; then
+				echo "Need exactly two ground delay values, ${#ground_delay_values[@]} given in '$OPTARG'"
+				exit 1
+			else
+				for ground_delay in "${ground_delay_values[@]}"; do
+					if ! [[ "${ground_delay}" =~ ^[0-9]+$ ]]; then
+						echo "Invalid integer value for -g"
+						exit 1
+					fi
+				done
+			fi
+			new_ground_delays+=("$OPTARG")
 			;;
 		h)
 			_osnd_moon_print_usage "$0"
@@ -926,6 +955,9 @@ function _osnd_moon_parse_args() {
 	if [[ "${#new_iperf_bw[@]}" > 0 ]]; then
 		iperf_bw=("${new_iperf_bw[@]}")
 	fi
+	if [[ "${#new_ground_delays[@]}" > 0 ]]; then
+		ground_delays=("${new_ground_delays[@]}")
+	fi
 }
 
 function _main() {
@@ -941,6 +973,7 @@ function _main() {
 	declare -a ack_freqs=("25,1000,8")
 	declare -a iperf_bw=("20M,5M")
 	declare -a routing_strategy=("LTE")
+	declare -a ground_delays=("0,0")
 
 	_osnd_moon_parse_args "$@"
 
@@ -964,7 +997,7 @@ function _main() {
 	trap _osnd_moon_abort_measurements EXIT
 	trap _osnd_moon_interrupt_measurements SIGINT
 
-	2> >(log E -)
+	_osnd_moon_run_scenarios 2> >(log E -)
 
 	trap - SIGINT
 	trap - EXIT

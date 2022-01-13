@@ -110,31 +110,15 @@ function _moon_setup_virtual_switch() {
     sudo ovs-ofctl add-flow br-lte icmp6,in_port=eNB0,actions=output:ue0
 }
 
-# _moon_setup_ground_delay(delay_ms)
-function _moon_setup_ground_delay() {
-    local delay_ms="$1"
-
-    log D "Configuring ground delay"
-
-    if [ "$delay_ms" -ne "0" ]; then
-        sudo ip netns exec osnd-moon-svgw tc qdisc replace dev gw4 handle 1:0 root netem delay ${delay_ms}ms
-        sudo ip netns exec osnd-moon-sv tc qdisc replace dev gw5 handle 1:0 root netem delay ${delay_ms}ms
-        sudo ip netns exec osnd-moon-clgw tc qdisc replace dev ue2 handle 1:0 root netem delay ${delay_ms}ms
-        sudo ip netns exec osnd-moon-cl tc qdisc replace dev ue3 handle 1:0 root netem delay ${delay_ms}ms
-    fi
-}
-
-# moon_setup_namespaces(delay)
+# moon_setup_namespaces()
 # Create the namespaces and all links within them for the emulation setup.
 function moon_setup_namespaces() {
-    local delay="${1:-0}"
     local iw_sv="${2:-10}"
     local iw_cl="${3:-10}"
 
     _moon_setup_add_namespaces
     _moon_setup_ip_config "$iw_sv" "$iw_cl"
     _moon_setup_virtual_switch
-    _moon_setup_ground_delay "$delay"
 }
 
 # If script is executed directly
