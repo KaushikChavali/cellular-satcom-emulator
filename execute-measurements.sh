@@ -253,8 +253,14 @@ function _osnd_moon_generate_scenarios() {
 											for bw in "{iperf_bw[@]}"; do
 												for route in "{routing_strategy[@]}"; do
 													for gds in "{ground_delays[@]}"; do
-														local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route} -g {gds}"
-														echo "$common_options $scenario_options" >>"$scenario_file"
+														for mp_ccs in "{mptcp_cc_algorithms[@]}"; do
+															for mp_pm in "{mptcp_path_managers[@]}"; do
+																for mp_sched in {"mptcp_schedulers[@]}"}; do
+																	local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route} -g ${gds} -c ${mp_ccs} -p ${mp_pm} -S ${mp_sched}"
+																	echo "$common_options $scenario_options" >>"$scenario_file"
+																done
+															done
+														done
 													done
 												done
 											done
@@ -280,7 +286,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:C:D:E:F:gHI:M:N:l:L:O:P:Q:r:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,congestion-control:,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,prime:,quicly-buffers:,routing-strategy:,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:D:E:F:g:HI:M:N:l:L:N:O:p:P:Q:r:S:t:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -300,6 +306,10 @@ function _osnd_moon_read_scenario() {
 			;;
 		-B | --transport-buffers)
 			config_ref['tbs']="$2"
+			shift 2
+			;;
+		-c | --mptcp-congestion-control)
+			config_ref['mp_cc']="$2"
 			shift 2
 			;;
 		-C | --congestion-control)
@@ -350,6 +360,10 @@ function _osnd_moon_read_scenario() {
 			config_ref['orbit']="$2"
 			shift 2
 			;;
+		-p | --mptcp-path-manager)
+			config_ref['mp_pm']="$2"
+			shift 2
+			;;
 		-P | --prime)
 			config_ref['prime']="$2"
 			shift 2
@@ -360,6 +374,10 @@ function _osnd_moon_read_scenario() {
 			;;
 		-r | --routing-strategy)
 			config_ref['route']="$2"
+			shift 2
+			;;
+		-S | --mptcp-scheduler)
+			config_ref['mp_sched']="$2"
 			shift 2
 			;;
 		-T | --timing-runs)
@@ -534,6 +552,10 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['route']="LTE"
 		scenario_config['gds']="0,0"
 
+		scenario_config['mp_cc']="lia"
+		scenario_config['mp_pm']="fullmesh"
+		scenario_config['mp_sched']="default"
+
 		_osnd_moon_read_scenario scenario_config "$scenario"
 		local read_status=$?
 		if [ "$read_status" != "0" ]; then
@@ -623,6 +645,7 @@ Scenario configuration:
   -A <#,>    csl of attenuations to measure (default: 0db)
   -B <#,>*   QUIC-specific: csl of two qperf transfer buffer sizes for G and T (default: 1M)
   -b <#,>	 iPerf bandwith vis-à-vis the defined QoS requirements [UL/DL] (default: 20M,5M)
+  -c <#,>	 MPTCP-specific: congestion control (lia, olia, balia, wVegas) (default: lia)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -D #       dump the first # packets of a measurement
   -E <GT,>   csl of two delay values: each one value or multiple seconds-delay values (default: 125)
@@ -634,9 +657,11 @@ Scenario configuration:
   -L <#,>    percentages of packets to be dropped (default: 0%)
   -N #       number of goodput measurements per config (default: 1)
   -O <#,>    csl of orbits to measure (GEO|MEO|LEO) (default: GEO)
+  -p <#,>	 MPTCP-specific: advanced path-manager control (default, fullmesh, binder, netlink) (default: fullmesh) 
   -P #       seconds to prime a new environment with some pings (default: 5)
   -Q <#,>*   QUIC-specific: csl of four qperf quicly buffer sizes for SGTC (default: 1M)
   -r <#,>	 Select a routing strategy (LTE|SAT|MP) (default: LTE)
+  -S <#,> 	 MPTCP-specific: scheduler (default, roundrobin, redundant, blest) (default: default)
   -T #       number of timing measurements per config (default: 4)
   -U <#,>*   QUIC-specific: csl of four qperf udp buffer sizes for SGTC (default: 1M)
   -V         disable plain (non pep) measurements
@@ -682,7 +707,7 @@ function _osnd_moon_parse_args() {
 	local -a new_iperf_bw=()
 	local -a new_ground_delays=()
 	local measure_cli_args="false"
-	while getopts "b:f:ghr:st:vA:B:C:D:E:F:HI:l:L:N:O:P:Q:T:U:VWXYZ" opt; do
+	while getopts "b:c:f:g:hl:p:r:st:vA:B:C:D:E:F:HI:L:N:O:P:Q:S:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -699,6 +724,9 @@ function _osnd_moon_parse_args() {
 				exit 1
 			fi
 			new_iperf_bw+=("$OPTARG")
+			;;
+		c)
+			IFS=',' read -ra mptcp_cc_algorithms <<<"$OPTARG"
 			;;
 		f)
 			if [[ "$measure_cli_args" == "true" ]]; then
@@ -725,6 +753,17 @@ function _osnd_moon_parse_args() {
 		h)
 			_osnd_moon_print_usage "$0"
 			exit 0
+			;;
+		l)
+			IFS=',' read -ra qlog_files <<<"$OPTARG"
+			if [[ "${#qlog_files[@]}" != 2 ]]; then
+				echo "Need exactly two files, ${#qlog_files[@]} given in '$OPTARG'"
+				exit 1
+			fi
+			qlog_file=$OPTARG
+			;;
+		p)
+			IFS=',' read -ra mptcp_path_managers <<<"$OPTARG"
 			;;
 		r)
 			IFS=',' read -ra routing_strategy <<<"$OPTARG"
@@ -846,14 +885,6 @@ function _osnd_moon_parse_args() {
 			fi
 			new_quicly_iw_sizes+=("$OPTARG")
 			;;
-		l)
-			IFS=',' read -ra qlog_files <<<"$OPTARG"
-			if [[ "${#qlog_files[@]}" != 2 ]]; then
-				echo "Need exactly two files, ${#qlog_files[@]} given in '$OPTARG'"
-				exit 1
-			fi
-			qlog_file=$OPTARG
-			;;
 		L)
 			IFS=',' read -ra packet_losses <<<"$OPTARG"
 			for loss in "${packet_losses[@]}"; do
@@ -889,6 +920,9 @@ function _osnd_moon_parse_args() {
 				exit 1
 			fi
 			new_quicly_buffer_sizes+=("$OPTARG")
+			;;
+		S)
+			IFS=',' read -ra mptcp_schedulers <<<"$OPTARG"
 			;;
 		T)
 			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
@@ -974,6 +1008,9 @@ function _main() {
 	declare -a iperf_bw=("20M,5M")
 	declare -a routing_strategy=("LTE")
 	declare -a ground_delays=("0,0")
+	declare -a mptcp_schedulers=("default")
+	declare -a mptcp_cc_algorithms=("lia")
+	declare -a mptcp_path_managers=("fullmesh")
 
 	_osnd_moon_parse_args "$@"
 

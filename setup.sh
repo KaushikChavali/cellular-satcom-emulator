@@ -1,5 +1,58 @@
 #!/bin/bash
 
+# _add_mptcp_modules
+function _add_mptcp_modules() {
+	# Load MPTCP modules
+	sudo modprobe mptcp_olia
+	sudo modprobe mptcp_coupled
+	sudo modprobe mptcp_balia
+	sudo modprobe mptcp_wvegas
+
+	# Schedulers
+	sudo modprobe mptcp_rr
+	sudo modprobe mptcp_redundant
+	sudo modprobe mptcp_blest
+
+	# Path managers
+	sudo modprobe mptcp_ndiffports
+	sudo modprobe mptcp_binder
+}
+
+# _configure_mptcp_options(mptcp_cc, mptcp_pm, mptcp_sched)
+function _configure_mptcp_options() {
+	local mptcp_cc="$1"
+	local mptcp_pm="$2"
+	local mptcp_sched="$3"
+
+	# Configure the path-manager;
+	# default, fullmesh, ndiffports, binder, netlink
+	sudo sysctl -wq net.mptcp.mptcp_path_manager="$mptcp_pm"
+
+	# Configure the scheduler;
+	# default, roundrobin, redundant, blest
+	sudo sysctl -wq net.mptcp.mptcp_scheduler="$mptcp_sched"
+
+	# Configure the congestion control algorithm;
+	# lia, olia, wVegas, balia
+	sudo sysctl -wq net.ipv4.tcp_congestion_control="$mptcp_cc"
+}
+
+# _config_mptcp_options(route, mptcp_cc, mptcp_pm, mptcp_sched)
+function _set_mptcp_options() {
+	local route="$1"
+	local mptcp_cc="$2"
+	local mptcp_pm="$3"
+	local mptcp_sched="$4"
+
+	if [[ "$route" == "MP" ]]; then
+		# Add MPTCP modules to the Linux kernel
+		_add_mptcp_modules
+
+		# Configure MPTCP scenario options
+		_configure_mptcp_options "$mptcp_cc" "$mptcp_pm" "$mptcp_sched"
+	fi
+}
+
 # _osnd_orbit_ground_delay(orbit)
 function _osnd_orbit_ground_delay() {
 	local orbit="$1"
@@ -127,6 +180,10 @@ function osnd_moon_setup() {
 	local iw_st="${scenario_config['iw_st']}"
 	local iw_cl="${scenario_config['iw_cl']}"
 
+	local mp_cc="${scenario_config_ref['mp_cc']:-lia}"
+	local mp_pm="${scenario_config_ref['mp_pm']:-fullmesh}"
+	local mp_sched="${scenario_config_ref['mp_sched']:-default}"
+
 	log I "Setting up emulation environment"
 
 	osnd_setup_namespaces "$delay_ground" "$packet_loss" "$iw_sv" "$iw_gw" "$iw_st" "$iw_cl"
@@ -142,6 +199,8 @@ function osnd_moon_setup() {
 	osnd_moon_setup_ground_delay "$delay_ground" "$delay_cl_sat" "$delay_cl_lte"
 	sleep 1
 	_osnd_moon_configure_cc "$cc_cl" "$cc_st" "$cc_emu" "$cc_gw" "$cc_sv"
+	sleep 1
+	_set_mptcp_options "$route" "$mp_cc" "$mp_pm" "$mp_sched"
 	sleep 1
 	osnd_setup_opensand "$delay_gw" "$delay_st" "$attenuation" "$modulation_id"
 	sleep 1

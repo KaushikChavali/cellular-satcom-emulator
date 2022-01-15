@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# _disable_mptcp_protocol()
+function _disable_mptcp_protocol() {
+    # Disable MPTCP on the machine
+    sudo sysctl -wq net.mptcp.mptcp_enabled=0
+}
+
 # _osnd_moon_teardown_capture()
 # Stop capturing packets
 function _osnd_moon_teardown_capture() {
@@ -35,6 +41,7 @@ function osnd_moon_teardown() {
     # _osnd_moon_teardown_capture
     osnd_teardown_namespaces
     moon_teardown_namespaces
+    _disable_mptcp_protocol
     log D "Environment teared down"
 }
 

@@ -6,7 +6,7 @@ It does this by processing the round-trip time (RTT) values of a flow generated 
 
 # Format
 
-### Sample input from Hypatia
+### Hypatia output
 
 ```
 # flow_id, time_ns, rtt_ns
@@ -17,7 +17,7 @@ It does this by processing the round-trip time (RTT) values of a flow generated 
 0,38506653,17129882
 ```
 
-### Sample output for OpenSAND
+### OpenSAND input
 
 ```
 # time_s delay_ms
