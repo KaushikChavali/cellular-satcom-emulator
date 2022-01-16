@@ -286,7 +286,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:D:E:F:g:HI:M:N:l:L:N:O:p:P:Q:r:S:t:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:D:E:F:g:HI:M:N:l:L:N:O:p:P:Q:r:S:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -718,9 +718,9 @@ function _osnd_moon_parse_args() {
 
 		case "$opt" in
 		b)
-			IFS=',' read -ra generated_ipef_bw <<<"$OPTARG"
-			if [[ "${#generated_ipef_bw[@]}" != 2 ]]; then
-				echo "Need exactly two bandwith values for UL and DL, respectively, ${#generated_ipef_bw[@]} given in '$OPTARG'"
+			IFS=',' read -ra bw_vals <<<"$OPTARG"
+			if [[ "${#bw_vals[@]}" != 2 ]]; then
+				echo "Need exactly two bandwith values for UL and DL, respectively, ${#bw_vals[@]} given in '$OPTARG'"
 				exit 1
 			fi
 			new_iperf_bw+=("$OPTARG")
@@ -736,12 +736,12 @@ function _osnd_moon_parse_args() {
 			scenario_file="$OPTARG"
 			;;
 		g)
-			IFS=',' read -ra ground_delay_values <<<"$OPTARG"
-			if [[ "${#ground_delay_values[@]}" != 2 ]]; then
-				echo "Need exactly two ground delay values, ${#ground_delay_values[@]} given in '$OPTARG'"
+			IFS=',' read -ra gd_vals <<<"$OPTARG"
+			if [[ "${#gd_vals[@]}" != 2 ]]; then
+				echo "Need exactly two ground delay values, ${#gd_vals[@]} given in '$OPTARG'"
 				exit 1
 			else
-				for ground_delay in "${ground_delay_values[@]}"; do
+				for ground_delay in "${gd_vals[@]}"; do
 					if ! [[ "${ground_delay}" =~ ^[0-9]+$ ]]; then
 						echo "Invalid integer value for -g"
 						exit 1
