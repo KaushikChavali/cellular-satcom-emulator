@@ -76,13 +76,13 @@ function osnd_moon_config_routes() {
 
         # Configure the two different routing tables
         sudo ip netns exec osnd-moon-cl ip route add ${CL_LAN_NET_MG} dev ue3 scope link table 1
-        sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_CLIENT_IP%%/*} dev ue3 table 1
+        sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_CLIENT_IP_MG%%/*} dev ue3 table 1
 
         sudo ip netns exec osnd-moon-cl ip route add ${CL_LAN_NET} dev st3 scope link table 2
         sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_ROUTER_IP%%/*} dev st3 table 2
 
         # Default route for the selection process of normal traffic
-        sudo ip netns exec osnd-moon-cl ip route add default scope global nexthop via ${CL_LAN_CLIENT_IP%%/*} dev ue3
+        sudo ip netns exec osnd-moon-cl ip route add default scope global nexthop via ${CL_LAN_ROUTER_IP%%/*} dev st3
 
         # Configure route at the server
         sudo ip netns exec osnd-moon-sv ip route add default via ${SV_LAN_ROUTER_IP%%/*}
@@ -96,17 +96,17 @@ osnd_moon_setup_ground_delay() {
     local delay_cl_lte_ms="$3"
 
     log D "Configuring server-side ground delay"
-    if [ "$delay_ms" -ne "0" ]; then
+    if [ "$delay_ground_ms" -ne "0" ]; then
         sudo ip netns exec osnd-moon-svgw tc qdisc replace dev gw4 handle 1:0 root netem delay ${delay_ground_ms}ms
         sudo ip netns exec osnd-moon-sv tc qdisc replace dev gw5 handle 1:0 root netem delay ${delay_ground_ms}ms
     fi
 
     log D "Configuring client-side ground delays"
-    if [ "delay_cl_sat_ms" -ne "0" ]; then
+    if [ "$delay_cl_sat_ms" -ne "0" ]; then
         sudo ip netns exec osnd-moon-cl tc qdisc replace dev st3 handle 1:0 root netem delay ${delay_cl_sat_ms}ms
         sudo ip netns exec osnd-stp tc qdisc replace dev st2 handle 1:0 root netem delay ${delay_cl_sat_ms}ms
     fi
-    if [ "delay_cl_lte_ms" -ne "0" ]; then
+    if [ "$delay_cl_lte_ms" -ne "0" ]; then
         sudo ip netns exec osnd-moon-cl tc qdisc replace dev ue3 handle 1:0 root netem delay ${delay_cl_lte_ms}ms
         sudo ip netns exec osnd-moon-clgw tc qdisc replace dev ue2 handle 1:0 root netem delay ${delay_cl_lte_ms}ms
     fi

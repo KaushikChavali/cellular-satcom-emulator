@@ -3,13 +3,14 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.0.2"
+export SCRIPT_VERSION="2.1.0"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
 
 set -o allexport
 source "${CONFIG_DIR}/testbed-config.sh"
+source "${CONFIG_DIR}/moon-config.sh"
 set +o allexport
 
 source "${OSND_DIR}/setup.sh"
@@ -250,12 +251,12 @@ function _osnd_moon_generate_scenarios() {
 								for loss in "${packet_losses[@]}"; do
 									for iw in "${iws[@]}"; do
 										for ack_freq in "${ack_freqs[@]}"; do
-											for bw in "{iperf_bw[@]}"; do
-												for route in "{routing_strategy[@]}"; do
-													for gds in "{ground_delays[@]}"; do
-														for mp_ccs in "{mptcp_cc_algorithms[@]}"; do
-															for mp_pm in "{mptcp_path_managers[@]}"; do
-																for mp_sched in {"mptcp_schedulers[@]}"}; do
+											for bw in "${iperf_bw[@]}"; do
+												for route in "${routing_strategy[@]}"; do
+													for gds in "${ground_delays[@]}"; do
+														for mp_ccs in "${mptcp_cc_algorithms[@]}"; do
+															for mp_pm in "${mptcp_path_managers[@]}"; do
+																for mp_sched in "${mptcp_schedulers[@]}"; do
 																	local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route} -g ${gds} -c ${mp_ccs} -p ${mp_pm} -S ${mp_sched}"
 																	echo "$common_options $scenario_options" >>"$scenario_file"
 																done
@@ -445,6 +446,15 @@ function _osnd_moon_exec_scenario_with_config() {
 	local run_cnt=${config_ref['runs']:-1}
 	local run_timing_cnt=${config_ref['timing_runs']:-2}
 	local sel_route=${config_ref['route']:-"LTE"}
+
+	if [[ "${config_ref['route']:-"LTE"}" == "LTE" ]]; then
+		config_ref['exec_pep']=false
+	fi
+
+	if [[ "${config_ref['route']:-"LTE"}" == "MP" ]]; then
+		config_ref['exec_quic']=false
+		config_ref['exec_http']=false
+	fi
 
 	if [[ "${config_ref['exec_ping']:-true}" == true ]]; then
 		osnd_moon_measure_ping "$config_name" "$measure_output_dir" "$sel_route"

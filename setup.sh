@@ -235,6 +235,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	export OSND_MOON_TMP="$(mktemp -d --tmpdir opensand-moongen.XXXXXX)"
 	set -a
 	source "${CONFIG_DIR}/testbed-config.sh"
+	source "${CONFIG_DIR}/moon-config.sh"
 	source "${OSND_DIR}/setup-opensand.sh"
 	source "${OSND_DIR}/setup-namespaces.sh"
 	source "${SCRIPT_DIR}/setup-namespaces.sh"
