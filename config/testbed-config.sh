@@ -29,6 +29,8 @@ RESULTS_DIR="${SCRIPT_DIR}/out"
 MOONGEN_BIN="$HOME/MoonGen/build/MoonGen"
 # MoonGen LTE script dir
 MOONGEN_SCRIPT_DIR="$HOME/MoonGen/examples"
+# MoonGen LTE script title
+MOONGEN_SCRIPT="lte-emulator-handover.lua"
 # OpenSAND directory
 OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
 # chromium python script
@@ -67,22 +69,25 @@ SV_LAN_NET="10.30.4.0/24"
 SV_LAN_ROUTER_IP="10.30.4.1/24"
 SV_LAN_SERVER_IP="10.30.4.18/24"
 
+# Network for the server when multipath is enabled
+SV_LAN_NET_MP="172.20.5.0/24"
+SV_LAN_ROUTER_IP_MP="172.20.5.100/24"
+SV_LAN_SERVER_IP_MP="172.20.5.116/24"
+
 # Network for the client (via OpenSAND)
 CL_LAN_NET="192.168.26.0/24"
 CL_LAN_ROUTER_IP="192.168.26.1/24"
 CL_LAN_CLIENT_IP="192.168.26.34/24"
 
-# Bridge mac addresses (specified in opensand configuration, see topology.conf)
-BR_ST_MAC="de:ad:be:ef:00:02"
-BR_EMU_MAC="de:ad:be:ef:00:ff"
-BR_GW_MAC="de:ad:be:ef:00:01"
-
-# LTE network config
-
 # Network for the client (via MoonGen)
 CL_LAN_NET_MG="172.20.5.0/24"
 CL_LAN_ROUTER_IP_MG="172.20.5.1/24"
 CL_LAN_CLIENT_IP_MG="172.20.5.16/24"
+
+# Bridge mac addresses (specified in opensand configuration, see topology.conf)
+BR_ST_MAC="de:ad:be:ef:00:02"
+BR_EMU_MAC="de:ad:be:ef:00:ff"
+BR_GW_MAC="de:ad:be:ef:00:01"
 
 # Timings and advanced config
 

@@ -53,6 +53,17 @@ function _set_mptcp_options() {
 	fi
 }
 
+# _osnd_config_server_ip(route)
+function _osnd_config_server_ip() {
+	local route="$1"
+
+	if [[ "$route" == "MP" ]]; then
+		SV_LAN_NET="$SV_LAN_NET_MP"
+		SV_LAN_ROUTER_IP="$SV_LAN_ROUTER_IP_MP"
+		SV_LAN_SERVER_IP="$SV_LAN_SERVER_IP_MP"
+	fi
+}
+
 # _osnd_orbit_ground_delay(orbit)
 function _osnd_orbit_ground_delay() {
 	local orbit="$1"
@@ -136,14 +147,14 @@ function _osnd_moon_capture() {
 		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_st3.eth'" Enter
 	else
 		log D "Capturing dump at ue3 (LTE)"
-		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl-lte -d "sudo ip netns exec osnd-moon-cl bash"
 		sleep $TMUX_INIT_WAIT
-		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i ue3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_ue3.eth'" Enter
+		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-lte "tcpdump -i ue3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_ue3.eth'" Enter
 
 		log D "Capturing dump at st3 (SATCOM)"
-		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl-sat -d "sudo ip netns exec osnd-moon-cl bash"
 		sleep $TMUX_INIT_WAIT
-		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_st3.eth'" Enter
+		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-sat "tcpdump -i st3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_st3.eth'" Enter
 	fi
 }
 
@@ -186,6 +197,8 @@ function osnd_moon_setup() {
 
 	log I "Setting up emulation environment"
 
+	_osnd_config_server_ip "$route"
+	sleep 1
 	osnd_setup_namespaces "$delay_ground" "$packet_loss" "$iw_sv" "$iw_gw" "$iw_st" "$iw_cl"
 	sleep 1
 	osnd_reconfig_namespaces

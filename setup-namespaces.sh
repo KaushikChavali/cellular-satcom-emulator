@@ -82,10 +82,10 @@ function osnd_moon_config_routes() {
         sudo ip netns exec osnd-moon-cl ip route add default via ${CL_LAN_ROUTER_IP%%/*} dev st3 table 2
 
         # Default route for the selection process of normal traffic
-        sudo ip netns exec osnd-moon-cl ip route add default scope global nexthop via ${CL_LAN_ROUTER_IP%%/*} dev st3
+        sudo ip netns exec osnd-moon-cl ip route add default scope global nexthop via ${CL_LAN_CLIENT_IP_MG%%/*} dev ue3
 
         # Configure route at the server
-        sudo ip netns exec osnd-moon-sv ip route add default via ${SV_LAN_ROUTER_IP%%/*}
+        sudo ip netns exec osnd-moon-sv ip route add ${CL_LAN_CLIENT_IP%%/*} via ${SV_LAN_ROUTER_IP%%/*} dev gw5
     fi
 }
 
