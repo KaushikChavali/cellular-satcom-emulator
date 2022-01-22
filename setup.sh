@@ -182,6 +182,7 @@ function osnd_moon_setup() {
 	local delay_ground="$(_osnd_orbit_ground_delay "$orbit")"
 	local delay_cl_sat="${scenario_config_ref['delay_cl_sat']:-0}"
 	local delay_cl_lte="${scenario_config_ref['delay_cl_lte']:-0}"
+	local delay_sv="${scenario_config_ref['delay_sv']:-0}"
 	local delay_gw="${scenario_config_ref['delay_gw']:-125}"
 	local delay_st="${scenario_config_ref['delay_st']:-125}"
 	local packet_loss="${scenario_config_ref['loss']:-0}"
@@ -209,7 +210,7 @@ function osnd_moon_setup() {
 	sleep 1
 	osnd_moon_config_routes "$route" "$iw_sv" "$iw_cl"
 	sleep 1
-	osnd_moon_setup_ground_delay "$delay_ground" "$delay_cl_sat" "$delay_cl_lte"
+	osnd_moon_setup_ground_delay "$delay_ground" "$delay_cl_sat" "$delay_cl_lte" "$delay_sv"
 	sleep 1
 	_osnd_moon_configure_cc "$cc_cl" "$cc_st" "$cc_emu" "$cc_gw" "$cc_sv"
 	sleep 1

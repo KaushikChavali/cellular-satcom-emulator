@@ -560,7 +560,7 @@ function _osnd_moon_run_scenarios() {
 
 		scenario_config['bw']="20M,5M"
 		scenario_config['route']="LTE"
-		scenario_config['gds']="0,0"
+		scenario_config['gds']="0,0,0"
 
 		scenario_config['mp_cc']="lia"
 		scenario_config['mp_pm']="fullmesh"
@@ -632,6 +632,7 @@ function _osnd_moon_run_scenarios() {
 		IFS=',' read -ra gd_vals <<<"${scenario_config['gds']}"
 		scenario_config['delay_cl_sat']="${gd_vals[0]}"
 		scenario_config['delay_cl_lte']="${gd_vals[1]}"
+		scenario_config['delay_sv']="${gd_vals[2]}"
 
 		# Execute scenario
 		echo "${scenario_config['id']} $scenario" >>"${EMULATION_DIR}/scenarios.txt"
@@ -659,7 +660,7 @@ Scenario configuration:
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -D #       dump the first # packets of a measurement
   -E <GT,>   csl of two delay values: each one value or multiple seconds-delay values (default: 125)
-  -g <#,>	 csl of ground delays at the client [SAT,LTE] (default: 0,0)
+  -g <#,>	 csl of ground delays at the client and the server [CL_SAT,CL_LTE,SV] (default: 0,0,0)
   -H         disable http measurements
   -F <#,>*   QUIC-specific: csl of three values: max. ACK Delay, packet no. after which first ack frequency packet is sent, fraction of CWND to be used in ACK frequency frame (default: 25, 1000, 8)
   -I <#,>*   csl of four initial window sizes for SGTC (default: 10)
@@ -747,8 +748,8 @@ function _osnd_moon_parse_args() {
 			;;
 		g)
 			IFS=',' read -ra gd_vals <<<"$OPTARG"
-			if [[ "${#gd_vals[@]}" != 2 ]]; then
-				echo "Need exactly two ground delay values, ${#gd_vals[@]} given in '$OPTARG'"
+			if [[ "${#gd_vals[@]}" != 3 ]]; then
+				echo "Need exactly three ground delay values, ${#gd_vals[@]} given in '$OPTARG'"
 				exit 1
 			else
 				for ground_delay in "${gd_vals[@]}"; do
@@ -1017,7 +1018,7 @@ function _main() {
 	declare -a ack_freqs=("25,1000,8")
 	declare -a iperf_bw=("20M,5M")
 	declare -a routing_strategy=("LTE")
-	declare -a ground_delays=("0,0")
+	declare -a ground_delays=("0,0,0")
 	declare -a mptcp_schedulers=("default")
 	declare -a mptcp_cc_algorithms=("lia")
 	declare -a mptcp_path_managers=("fullmesh")

@@ -89,18 +89,20 @@ function osnd_moon_config_routes() {
     fi
 }
 
-# osnd_moon_setup_ground_delay(delay_ground_ms, delay_cl_sat_ms, delay_cl_lte_ms)
+# osnd_moon_setup_ground_delay(delay_ground_ms, delay_cl_sat_ms, delay_cl_lte_ms, delay_sv_ms)
 osnd_moon_setup_ground_delay() {
     local delay_ground_ms="$1"
     local delay_cl_sat_ms="$2"
     local delay_cl_lte_ms="$3"
+    local delay_sv_ms="$4"
 
-    log D "Configuring server-side ground delay"
+    log D "Configuring satellite ground delay"
     if [ "$delay_ground_ms" -ne "0" ]; then
-        sudo ip netns exec osnd-moon-svgw tc qdisc replace dev gw4 handle 1:0 root netem delay ${delay_ground_ms}ms
-        sudo ip netns exec osnd-moon-sv tc qdisc replace dev gw5 handle 1:0 root netem delay ${delay_ground_ms}ms
+        sudo ip netns exec osnd-gwp tc qdisc replace dev gw2 handle 1:0 root netem delay ${delay_ground_ms}ms
+        sudo ip netns exec osnd-moon-svgw tc qdisc replace dev gw3 handle 1:0 root netem delay ${delay_ground_ms}ms
     fi
 
+    log D "Configuring additional ground delays"
     log D "Configuring client-side ground delays"
     if [ "$delay_cl_sat_ms" -ne "0" ]; then
         sudo ip netns exec osnd-moon-cl tc qdisc replace dev st3 handle 1:0 root netem delay ${delay_cl_sat_ms}ms
@@ -110,6 +112,12 @@ osnd_moon_setup_ground_delay() {
         sudo ip netns exec osnd-moon-cl tc qdisc replace dev ue3 handle 1:0 root netem delay ${delay_cl_lte_ms}ms
         sudo ip netns exec osnd-moon-clgw tc qdisc replace dev ue2 handle 1:0 root netem delay ${delay_cl_lte_ms}ms
     fi
+
+    log D "Configuring server-side ground delays"
+    if [ "$delay_sv_ms" -ne "0" ]; then
+        sudo ip netns exec osnd-moon-svgw tc qdisc replace dev gw4 handle 1:0 root netem delay ${delay_sv_ms}ms
+        sudo ip netns exec osnd-moon-sv tc qdisc replace dev gw5 handle 1:0 root netem delay ${delay_sv_ms}ms
+    fi
 }
 
 # osnd_moon_build_testbed()
@@ -118,6 +126,7 @@ function osnd_moon_build_testbed() {
     local delay_ground="${1:-0}"
     local delay_cl_sat="${2:-0}"
     local delay_cl_lte="${3:-0}"
+    local delay_sv="${4:-0}"
     local iw_sv="${4:-10}"
     local iw_cl="${5:-10}"
 
@@ -135,7 +144,7 @@ function osnd_moon_build_testbed() {
 
     osnd_moon_config_routes "$route" "$iw_sv" "$iw_cl"
 
-    osnd_moon_setup_ground_delay "$delay_ground" "delay_cl_sat" "delay_cl_lte"
+    osnd_moon_setup_ground_delay "$delay_ground" "$delay_cl_sat" "$delay_cl_lte" "$delay_sv"
 }
 
 # If script is executed directly
