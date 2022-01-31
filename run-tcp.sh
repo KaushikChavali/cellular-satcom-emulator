@@ -11,7 +11,7 @@ function _osnd_moon_iperf_measure() {
     log I "Running iperf client"
     sudo timeout --foreground $timeout \
         ip netns exec osnd-moon-cl \
-        ${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b $bandwidth -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile "${output_dir}/${run_id}_client.json"
+        ${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile "${output_dir}/${run_id}_client.json"
     status=$?
 
     # Check for error, report if any
@@ -115,10 +115,10 @@ function _osnd_pepsal_proxies_start() {
     tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "ip rule add fwmark 1 lookup 100 $error_redirect" Enter
     tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "ip route add local 0.0.0.0/0 dev lo table 100 $error_redirect" Enter
     # Mark selected traffic for processing by pepsal
-    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw1 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1 $error_redirect" Enter
-    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw2 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1 $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw1 -p tcp -j TPROXY --on-port 5201 --tproxy-mark 1 $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw2 -p tcp -j TPROXY --on-port 5201 --tproxy-mark 1 $error_redirect" Enter
     # Start pepsal
-    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "${PEPSAL_BIN} -p 5000 -l '${output_dir}/${run_id}_proxy_gw.txt' $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "${PEPSAL_BIN} -p 5201 -l '${output_dir}/${run_id}_proxy_gw.txt' $error_redirect" Enter
 
     # Satellite terminal proxy
     log D "Starting satellite terminal proxy"
@@ -129,11 +129,11 @@ function _osnd_pepsal_proxies_start() {
     tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "ip rule add fwmark 1 lookup 100 $error_redirect" Enter
     tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "ip route add local 0.0.0.0/0 dev lo table 100 $error_redirect" Enter
     # Mark selected traffic for processing by pepsal
-    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st1 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1 $error_redirect" Enter
-    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st2 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1 $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st1 -p tcp -j TPROXY --on-port 5201 --tproxy-mark 1 $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st2 -p tcp -j TPROXY --on-port 5201 --tproxy-mark 1 $error_redirect" Enter
     # Start pepsal
     tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st \
-        "${PEPSAL_BIN} -p 5000 -l '${output_dir}/${run_id}_proxy_st.txt' $error_redirect" \
+        "${PEPSAL_BIN} -p 5201 -l '${output_dir}/${run_id}_proxy_st.txt' $error_redirect" \
         Enter
 }
 
