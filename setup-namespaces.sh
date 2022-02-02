@@ -44,6 +44,9 @@ function osnd_moon_config_routes() {
     local iw_sv="$2"
     local iw_cl="$3"
 
+    # Loopback needed for geckodriver in selenium
+    sudo ip netns exec osnd-moon-cl ip link set dev lo up
+
     # Delete routes through the LTE link
     sudo ip netns exec osnd-moon-cl ip route del default via ${CL_LAN_CLIENT_IP_MG%%/*}
     sudo ip netns exec osnd-moon-sv ip route del default via ${SV_LAN_SERVER_IP%%/*}

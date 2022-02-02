@@ -221,12 +221,12 @@ function osnd_moon_setup() {
 	moon_setup_moongen "$output_dir" "$run_id"
 	sleep 10
 
-	if [ "$dump" -gt 0 ]; then
-		_osnd_moon_capture "$output_dir" "$run_id" "$pep" "$route" "$dump"
-	fi
-
 	if (($(echo "$prime > 0" | bc -l))); then
 		_osnd_moon_prime_env $prime
+	fi
+
+	if [ "$dump" -gt 0 ]; then
+		_osnd_moon_capture "$output_dir" "$run_id" "$pep" "$route" "$dump"
 	fi
 
 	log D "Environment set up"

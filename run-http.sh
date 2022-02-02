@@ -46,7 +46,7 @@ function osnd_moon_http_client_start() {
 
     log I "Running chromium script"
     # sleep 1000
-    sudo timeout --foreground $timeout ip netns exec osnd-cl ${PYTHON_BIN} ${HTTP_SCRIPT} ${protocol} ${server_ip} ${CHROME_DRIVER_BIN} ${output_dir} "${pep};${run}"
+    sudo timeout --foreground $timeout ip netns exec osnd-moon-cl ${PYTHON_BIN} ${HTTP_SCRIPT} ${protocol} ${server_ip} ${CHROME_DRIVER_BIN} ${output_dir} "${pep};${run}"
 
 }
 

@@ -1,5 +1,75 @@
 #!/bin/bash
 
+# _osnd_moon_dump_start(output_dir, run_id, route)
+function _osnd_moon_dump_start() {
+    local output_dir="$1"
+    local run_id="$2"
+    local route="$3"
+
+    log I "Starting tcpdump"
+
+    # Server
+    tmux -L ${TMUX_SOCKET} new-session -s tcpdump-sv -d "sudo ip netns exec osnd-moon-sv bash"
+    sleep $TMUX_INIT_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv "tcpdump -i gw5 -s 65535 -w ${output_dir}/${run_id}_dump_server_gw5.pcap" Enter
+
+    # Client
+    if [[ "$route" == "LTE" ]]; then
+        log D "Capturing dump at ue3 (LTE)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i ue3 -s 65535 -w ${output_dir}/${run_id}_dump_client_ue3.pcap" Enter
+    elif [[ "$route" == "SAT" ]]; then
+        log D "Capturing dump at st3 (SATCOM)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s 65535 -w ${output_dir}/${run_id}_dump_client_st3.pcap" Enter
+    else
+        log D "Capturing dump at ue3 (LTE)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl-lte -d "sudo ip netns exec osnd-moon-cl bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-lte "tcpdump -i ue3 -s 65535 -w ${output_dir}/${run_id}_dump_client_ue3.pcap" Enter
+
+        log D "Capturing dump at st3 (SATCOM)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl-sat -d "sudo ip netns exec osnd-moon-cl bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-sat "tcpdump -i st3 -s 65535 -w ${output_dir}/${run_id}_dump_client_st3.pcap" Enter
+    fi
+}
+
+# _osnd_moon_tcpdum_stop()
+function _osnd_moon_tcpdump_stop() {
+    log I "Stopping tcpdump"
+
+    # Server
+    tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv C-d
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} kill-session -t tcpdump-sv >/dev/null 2>&1
+
+    # Client
+    if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl C-c
+        sleep $CMD_SHUTDOWN_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl C-d
+        sleep $CMD_SHUTDOWN_WAIT
+        tmux -L ${TMUX_SOCKET} kill-session -t tcpdump-cl >/dev/null 2>&1
+    else
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-lte C-c
+        sleep $CMD_SHUTDOWN_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-lte C-d
+        sleep $CMD_SHUTDOWN_WAIT
+        tmux -L ${TMUX_SOCKET} kill-session -t tcpdump-cl-lte >/dev/null 2>&1
+
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-sat C-c
+        sleep $CMD_SHUTDOWN_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-sat C-d
+        sleep $CMD_SHUTDOWN_WAIT
+        tmux -L ${TMUX_SOCKET} kill-session -t tcpdump-cl-sat >/dev/null 2>&1
+    fi
+}
+
 # _osnd_moon_iperf_measure(output_dir, run_id, bandwidth, measure_secs, timeout)
 function _osnd_moon_iperf_measure() {
     local output_dir="$1"
@@ -198,6 +268,9 @@ function osnd_moon_measure_tcp_goodput() {
             sleep $MEASURE_WAIT
         fi
 
+        # Dump packets
+        _osnd_moon_dump_start "$output_dir" "$run_id" "$route"
+
         # Client
         _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
         sleep $MEASURE_GRACE
@@ -207,6 +280,7 @@ function osnd_moon_measure_tcp_goodput() {
             _osnd_pepsal_proxies_stop
         fi
         _osnd_iperf_server_stop
+        _osnd_moon_tcpdump_stop
         osnd_moon_teardown
 
         sleep $RUN_WAIT

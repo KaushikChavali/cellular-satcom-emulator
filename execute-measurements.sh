@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.2.0"
+export SCRIPT_VERSION="2.2.1"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
@@ -783,7 +783,7 @@ function _osnd_moon_parse_args() {
 			show_stats=true
 			;;
 		t)
-			osnd_moon_ytag="_$OPTARG"
+			osnd_moon_tag="_$OPTARG"
 			;;
 		v)
 			echo "opensand-moongen-measurement $SCRIPT_VERSION"
