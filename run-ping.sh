@@ -34,7 +34,7 @@ function osnd_moon_measure_ping() {
 
     for i in $(seq $run_cnt); do
         log I "Ping run $i/$run_cnt"
-        local run_id="ping_$i"
+        local run_id="ping"
 
         osnd_moon_setup $scenario_config_ref "$output_dir" "$run_id" "false" "$route"
         sleep $MEASURE_WAIT

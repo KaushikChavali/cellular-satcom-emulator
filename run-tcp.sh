@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# _osnd_moon_dump_start(output_dir, run_id, route)
-function _osnd_moon_dump_start() {
+# _osnd_moon_capture_start(output_dir, run_id, route)
+function _osnd_moon_capture_start() {
     local output_dir="$1"
     local run_id="$2"
     local route="$3"
@@ -37,36 +37,67 @@ function _osnd_moon_dump_start() {
     fi
 }
 
-# _osnd_moon_tcpdum_stop()
-function _osnd_moon_tcpdump_stop() {
+# _capture_stop(tmux_ns)
+function _capture_stop() {
+    local tmux_ns="$1"
+
+    tmux -L ${TMUX_SOCKET} send-keys -t ${tmux_ns} C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t ${tmux_ns} C-d
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} kill-session -t ${tmux_ns} >/dev/null 2>&1
+}
+
+# _osnd_moon_capture_stop()
+function _osnd_moon_capture_stop() {
+    local output_dir="$1"
+    local run_id="$2"
+    local route="$3"
+
     log I "Stopping tcpdump"
 
     # Server
-    tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv C-c
-    sleep $CMD_SHUTDOWN_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv C-d
-    sleep $CMD_SHUTDOWN_WAIT
-    tmux -L ${TMUX_SOCKET} kill-session -t tcpdump-sv >/dev/null 2>&1
+    _capture_stop "tcpdump-sv"
 
     # Client
     if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
-        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl C-c
-        sleep $CMD_SHUTDOWN_WAIT
-        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl C-d
-        sleep $CMD_SHUTDOWN_WAIT
-        tmux -L ${TMUX_SOCKET} kill-session -t tcpdump-cl >/dev/null 2>&1
+        _capture_stop "tcpdump-cl"
     else
-        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-lte C-c
-        sleep $CMD_SHUTDOWN_WAIT
-        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-lte C-d
-        sleep $CMD_SHUTDOWN_WAIT
-        tmux -L ${TMUX_SOCKET} kill-session -t tcpdump-cl-lte >/dev/null 2>&1
+        _capture_stop "tcpdump-cl-lte"
+        _capture_stop "tcpdump-cl-sat"
+    fi
+}
 
-        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-sat C-c
-        sleep $CMD_SHUTDOWN_WAIT
-        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-sat C-d
-        sleep $CMD_SHUTDOWN_WAIT
-        tmux -L ${TMUX_SOCKET} kill-session -t tcpdump-cl-sat >/dev/null 2>&1
+# _osnd_moon_process_capture()
+function _osnd_moon_process_capture() {
+    local output_dir="$1"
+    local run_id="$2"
+    local route="$3"
+
+    log I "Post-processing PCAPs in situ"
+
+    # Server
+    captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_server_gw5.pcap >/dev/null 2>&1
+    mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_server_gw5.data
+    xz ${output_dir}/${run_id}_dump_server_gw5.pcap
+
+    # Client
+    if [[ "$route" == "LTE" ]]; then
+        captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_client_ue3.pcap >/dev/null 2>&1
+        mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_client_ue3.data
+        xz ${output_dir}/${run_id}_dump_client_ue3.pcap
+    elif [[ "$route" == "SAT" ]]; then
+        captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_client_st3.pcap >/dev/null 2>&1
+        mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_client_st3.data
+        xz ${output_dir}/${run_id}_dump_client_st3.pcap
+    else
+        captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_client_ue3.pcap >/dev/null 2>&1
+        mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_client_ue3.data
+        xz ${output_dir}/${run_id}_dump_client_ue3.pcap
+
+        captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_client_st3.pcap >/dev/null 2>&1
+        mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_client_st3.data
+        xz ${output_dir}/${run_id}_dump_client_st3.pcap
     fi
 }
 
@@ -269,7 +300,7 @@ function osnd_moon_measure_tcp_goodput() {
         fi
 
         # Dump packets
-        _osnd_moon_dump_start "$output_dir" "$run_id" "$route"
+        _osnd_moon_capture_start "$output_dir" "$run_id" "$route"
 
         # Client
         _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
@@ -280,8 +311,11 @@ function osnd_moon_measure_tcp_goodput() {
             _osnd_pepsal_proxies_stop
         fi
         _osnd_iperf_server_stop
-        _osnd_moon_tcpdump_stop
+        _osnd_moon_capture_stop "$output_dir" "$run_id" "$route"
         osnd_moon_teardown
+
+        # Do post-processing of PCAPs
+        _osnd_moon_process_capture "$output_dir" "$run_id" "$route"
 
         sleep $RUN_WAIT
     done
