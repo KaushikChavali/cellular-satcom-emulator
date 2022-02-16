@@ -68,6 +68,17 @@ function _osnd_moon_capture_stop() {
     fi
 }
 
+# _osnd_moon_extract_pcap()
+function _osnd_moon_extract_pcap() {
+    local output_dir="$1"
+    local run_id="$2"
+    local file="$3"
+
+    captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_${file}.pcap >/dev/null 2>&1
+    mv ${output_dir}/throughput.data ${output_dir}/${run_id}_${file}.data
+    xz ${output_dir}/${run_id}_${file}.pcap
+}
+
 # _osnd_moon_process_capture()
 function _osnd_moon_process_capture() {
     local output_dir="$1"
@@ -77,27 +88,16 @@ function _osnd_moon_process_capture() {
     log I "Post-processing PCAPs in situ"
 
     # Server
-    captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_server_gw5.pcap >/dev/null 2>&1
-    mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_server_gw5.data
-    xz ${output_dir}/${run_id}_dump_server_gw5.pcap
+    _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_server_gw5"
 
     # Client
     if [[ "$route" == "LTE" ]]; then
-        captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_client_ue3.pcap >/dev/null 2>&1
-        mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_client_ue3.data
-        xz ${output_dir}/${run_id}_dump_client_ue3.pcap
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_ue3"
     elif [[ "$route" == "SAT" ]]; then
-        captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_client_st3.pcap >/dev/null 2>&1
-        mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_client_st3.data
-        xz ${output_dir}/${run_id}_dump_client_st3.pcap
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_st3"
     else
-        captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_client_ue3.pcap >/dev/null 2>&1
-        mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_client_ue3.data
-        xz ${output_dir}/${run_id}_dump_client_ue3.pcap
-
-        captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_dump_client_st3.pcap >/dev/null 2>&1
-        mv ${output_dir}/throughput.data ${output_dir}/${run_id}_dump_client_st3.data
-        xz ${output_dir}/${run_id}_dump_client_st3.pcap
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_ue3"
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_st3"
     fi
 }
 

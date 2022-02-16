@@ -33,8 +33,9 @@ function _configure_mptcp_options() {
 	sudo sysctl -wq net.mptcp.mptcp_scheduler="$mptcp_sched"
 
 	# Configure the congestion control algorithm;
-	# lia, olia, wVegas, balia
-	sudo sysctl -wq net.ipv4.tcp_congestion_control="$mptcp_cc"
+	# reno, cubic, lia, olia, wVegas, balia
+	sudo ip netns exec osnd-moon-cl sysctl -wq net.ipv4.tcp_congestion_control="$mptcp_cc"
+	sudo ip netns exec osnd-moon-sv sysctl -wq net.ipv4.tcp_congestion_control="$mptcp_cc"
 }
 
 # _config_mptcp_options(route, mptcp_cc, mptcp_pm, mptcp_sched)

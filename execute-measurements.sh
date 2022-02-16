@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.2.1"
+export SCRIPT_VERSION="2.2.2"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
@@ -656,7 +656,7 @@ Scenario configuration:
   -A <#,>    csl of attenuations to measure (default: 0db)
   -B <#,>*   QUIC-specific: csl of two qperf transfer buffer sizes for G and T (default: 1M)
   -b <#,>	 iPerf bandwith vis-à-vis the defined QoS requirements [UL/DL] (default: 20M,5M)
-  -c <#,>	 MPTCP-specific: congestion control (lia, olia, balia, wVegas) (default: lia)
+  -c <#,>	 MPTCP-specific: congestion control; Uncoupled [reno, cubic], Coupled [lia, olia, balia, wVegas] (default: lia)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -D #       dump the first # packets of a measurement
   -E <GT,>   csl of two delay values: each one value or multiple seconds-delay values (default: 125)

@@ -110,7 +110,7 @@ executed, each being measured 5 times.
 | `-A` | `<#,>`     | Comma separated list of attenuation values to measure | `0` | E |
 | `-b` | `<#,>`     | Generated iPerf bandwith vis-à-vis the defined QoS requirements (UL,DL) | `20M,5M` | T |
 | `-B` | `<GT,>*`   | `QUIC-specific:` Comma separated list of two qperf transfer buffer sizes for gateway and terminal. Repeat parameter for multiple configurations | `1M,1M` | T |
-| `-c` | `<#,>`     | `MPTCP-specific:` congestion control (lia, olia, wVegas, balia) | `lia` | T |
+| `-c` | `<#,>`     | `MPTCP-specific:` congestion control; Uncoupled (cubic, reno), Coupled (lia, olia, wVegas, balia) | `lia` | T |
 | `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. (c = cubic, r = reno) | `rrrr` | T |
 | `-D` | `#`        | dump the first # packets of a measurement | | M |
 | `-E` | `<GT,>`    | csl of two delay values: each one value or multiple seconds-delay values | `125` | M |
