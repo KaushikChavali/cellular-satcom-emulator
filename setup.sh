@@ -54,6 +54,20 @@ function _set_mptcp_options() {
 	fi
 }
 
+# _osnd_moon_log_config()
+function _osnd_moon_log_config(){
+	local mptcp_cc_sv=$(sudo ip netns exec osnd-moon-sv sysctl net.ipv4.tcp_congestion_control)
+	local mptcp_enabled_sv=$(sudo sysctl net.mptcp.mptcp_enabled)
+	local mptcp_sched_sv=$(sudo sysctl net.mptcp.mptcp_scheduler)
+	local mptcp_pm_sv=$(sudo sysctl net.mptcp.mptcp_path_manager)
+
+	log I "MPTCP Configuration at the server (sender)"
+	log D "$mptcp_cc_sv"
+	log D "$mptcp_enabled_sv"
+	log D "$mptcp_sched_sv"
+	log D "$mptcp_pm_sv"	
+}
+
 # _osnd_config_server_ip(route)
 function _osnd_config_server_ip() {
 	local route="$1"
@@ -221,6 +235,7 @@ function osnd_moon_setup() {
 	sleep 1
 	moon_setup_moongen "$output_dir" "$run_id"
 	sleep 10
+	_osnd_moon_log_config
 
 	if (($(echo "$prime > 0" | bc -l))); then
 		_osnd_moon_prime_env $prime
@@ -229,6 +244,10 @@ function osnd_moon_setup() {
 	if [ "$dump" -gt 0 ]; then
 		_osnd_moon_capture "$output_dir" "$run_id" "$pep" "$route" "$dump"
 	fi
+
+	# Add delay so that priming OpenSAND does not affect LTE DRX states
+	# Wait for DRX state to retrun to RCC_IDLE
+	sleep 10 
 
 	log D "Environment set up"
 }
