@@ -60,12 +60,16 @@ function _osnd_moon_log_config(){
 	local mptcp_enabled_sv=$(sudo sysctl net.mptcp.mptcp_enabled)
 	local mptcp_sched_sv=$(sudo sysctl net.mptcp.mptcp_scheduler)
 	local mptcp_pm_sv=$(sudo sysctl net.mptcp.mptcp_path_manager)
+	local mptcp_pm_cl_verbose=$(sudo ip netns exec osnd-moon-cl cat /proc/net/mptcp_fullmesh)
+	local mptcp_pm_sv_verbose=$(sudo ip netns exec osnd-moon-sv cat /proc/net/mptcp_fullmesh)
 
 	log I "MPTCP Configuration at the server (sender)"
 	log D "$mptcp_cc_sv"
 	log D "$mptcp_enabled_sv"
 	log D "$mptcp_sched_sv"
 	log D "$mptcp_pm_sv"	
+	log D "$mptcp_pm_cl_verbose"
+	log D "$mptcp_pm_sv_verbose"
 }
 
 # _osnd_config_server_ip(route)
@@ -86,7 +90,7 @@ function _osnd_orbit_ground_delay() {
 	case "$orbit" in
 	"GEO") echo 40 ;;
 	"MEO") echo 60 ;;
-	"LEO") echo 80 ;;
+	"LEO") echo 10 ;;
 	*) echo 0 ;;
 	esac
 }
@@ -117,8 +121,8 @@ function _osnd_moon_prime_env() {
 	local seconds=$1
 
 	log D "Priming environment"
-	sudo timeout --foreground $(echo "$seconds + 1" | bc -l) ip netns exec osnd-moon-cl \
-		ping -n -W 8 -c $(echo "$seconds * 100" | bc -l) -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >/dev/null
+	sudo timeout --foreground $(echo "$seconds + 1" | bc -l) ip netns exec osnd-moon-sv \
+		ping -n -W 8 -c $(echo "$seconds * 100" | bc -l) -l 100 -i 0.01 ${CL_LAN_CLIENT_IP%%/*} >/dev/null
 }
 
 # _osnd_moon_capture(output_dir, run_id, pep, route, capture_nr)
