@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.2.4"
+export SCRIPT_VERSION="2.2.5"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
@@ -23,6 +23,7 @@ source "${OSND_DIR}/run-ping.sh"
 source "${OSND_DIR}/run-quic.sh"
 source "${OSND_DIR}/run-tcp.sh"
 source "${OSND_DIR}/run-http.sh"
+source "${OSND_DIR}/run-rtp.sh"
 source "${OSND_DIR}/stats.sh"
 
 source "${SCRIPT_DIR}/setup.sh"
@@ -41,6 +42,7 @@ source "${SCRIPT_DIR}/run-ping.sh"
 source "${SCRIPT_DIR}/run-quic.sh"
 source "${SCRIPT_DIR}/run-tcp.sh"
 source "${SCRIPT_DIR}/run-http.sh"
+source "${SCRIPT_DIR}/run-rtp.sh"
 declare -A pids
 
 # log(level, message...)
@@ -237,6 +239,9 @@ function _osnd_moon_generate_scenarios() {
 	if [[ "$exec_http" != "true" ]]; then
 		common_options="$common_options -H"
 	fi
+	if [[ "$exec_rtp" != "true" ]]; then
+		common_options="$common_options -R"
+	fi
 	if [[ ${#qlog_file} -le 0 ]]; then
 		qlog_file="${EMULATION_DIR}/client.qlog,${EMULATION_DIR}/server.qlog"
 	fi
@@ -287,7 +292,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:D:E:F:g:HI:M:N:l:L:N:O:p:P:Q:r:S:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:D:E:F:g:HI:M:N:l:L:N:O:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -376,6 +381,10 @@ function _osnd_moon_read_scenario() {
 		-r | --routing-strategy)
 			config_ref['route']="$2"
 			shift 2
+			;;
+		-R | --disable-rtp)
+			config_ref['exec_rtp']="false"
+			shift 1
 			;;
 		-S | --mptcp-scheduler)
 			config_ref['mp_sched']="$2"
@@ -500,6 +509,15 @@ function _osnd_moon_exec_scenario_with_config() {
 			fi
 		fi
 	fi
+
+	if [[ "${config_ref['exec_rtp']:-true}" == true ]]; then
+		if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
+			osnd_moon_measure_rtp_metrics "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt
+		fi
+		if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
+			osnd_moon_measure_rtp_metrics "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
+		fi
+	fi
 }
 
 #_osnd_moon_get_cc(ccs, index)
@@ -539,6 +557,7 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['exec_quic']="true"
 		scenario_config['exec_tcp']="true"
 		scenario_config['exec_http']="true"
+		scenario_config['exec_rtp']="true"
 
 		scenario_config['prime']=5
 		scenario_config['runs']=1
@@ -671,6 +690,7 @@ Scenario configuration:
   -p <#,>	 MPTCP-specific: advanced path-manager control (default, fullmesh, binder, netlink) (default: fullmesh) 
   -P #       seconds to prime a new environment with some pings (default: 5)
   -Q <#,>*   QUIC-specific: csl of four qperf quicly buffer sizes for SGTC (default: 1M)
+  -R		 disable rtp measurements
   -r <#,>	 Select a routing strategy (LTE|SAT|MP) (default: LTE)
   -S <#,> 	 MPTCP-specific: scheduler (default, roundrobin, redundant, blest) (default: default)
   -T #       number of timing measurements per config (default: 4)
@@ -705,6 +725,7 @@ function _osnd_moon_parse_args() {
 	exec_quic=true
 	exec_tcp=true
 	exec_http=true
+	exec_rtp=true
 	scenario_file=""
 	dump_packets=0
 	qlog_file=""
@@ -718,7 +739,7 @@ function _osnd_moon_parse_args() {
 	local -a new_iperf_bw=()
 	local -a new_ground_delays=()
 	local measure_cli_args="false"
-	while getopts "b:c:f:g:hl:p:r:st:vA:B:C:D:E:F:HI:L:N:O:P:Q:S:T:U:VWXYZ" opt; do
+	while getopts "b:c:f:g:hl:p:r:st:vA:B:C:D:E:F:HI:L:N:O:P:Q:RS:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -931,6 +952,9 @@ function _osnd_moon_parse_args() {
 				exit 1
 			fi
 			new_quicly_buffer_sizes+=("$OPTARG")
+			;;
+		R)
+			exec_rtp=false
 			;;
 		S)
 			IFS=',' read -ra mptcp_schedulers <<<"$OPTARG"

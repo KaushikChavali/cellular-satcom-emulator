@@ -1,0 +1,305 @@
+# _osnd_moon_capture_start(output_dir, run_id, route)
+function _osnd_moon_capture_start() {
+    local output_dir="$1"
+    local run_id="$2"
+    local route="$3"
+
+    log I "Starting tcpdump"
+
+    # Server
+    tmux -L ${TMUX_SOCKET} new-session -s tcpdump-sv -d "sudo ip netns exec osnd-moon-sv bash"
+    sleep $TMUX_INIT_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv "tcpdump -i gw5 -s 65535 -w ${output_dir}/${run_id}_dump_server_gw5.pcap" Enter
+
+    # Client
+    if [[ "$route" == "LTE" ]]; then
+        log D "Capturing dump at ue3 (LTE)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i ue3 -s 65535 -w ${output_dir}/${run_id}_dump_client_ue3.pcap" Enter
+    elif [[ "$route" == "SAT" ]]; then
+        log D "Capturing dump at st3 (SATCOM)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s 65535 -w ${output_dir}/${run_id}_dump_client_st3.pcap" Enter
+    else
+        log D "Capturing dump at ue3 (LTE)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl-lte -d "sudo ip netns exec osnd-moon-cl bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-lte "tcpdump -i ue3 -s 65535 -w ${output_dir}/${run_id}_dump_client_ue3.pcap" Enter
+
+        log D "Capturing dump at st3 (SATCOM)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl-sat -d "sudo ip netns exec osnd-moon-cl bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-sat "tcpdump -i st3 -s 65535 -w ${output_dir}/${run_id}_dump_client_st3.pcap" Enter
+    fi
+}
+
+
+# _capture_stop(tmux_ns)
+function _capture_stop() {
+    local tmux_ns="$1"
+
+    tmux -L ${TMUX_SOCKET} send-keys -t ${tmux_ns} C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t ${tmux_ns} C-d
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} kill-session -t ${tmux_ns} >/dev/null 2>&1
+}
+
+
+# _osnd_moon_capture_stop()
+function _osnd_moon_capture_stop() {
+    local output_dir="$1"
+    local run_id="$2"
+    local route="$3"
+
+    log I "Stopping tcpdump"
+
+    # Server
+    _capture_stop "tcpdump-sv"
+
+    # Client
+    if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
+        _capture_stop "tcpdump-cl"
+    else
+        _capture_stop "tcpdump-cl-lte"
+        _capture_stop "tcpdump-cl-sat"
+    fi
+}
+
+
+# _osnd_pepsal_proxies_start(output_dir, run_id)
+function _osnd_pepsal_proxies_start() {
+    local output_dir="$1"
+    local run_id="$2"
+    local error_redirect=""
+
+    log I "Starting pepsal proxies"
+
+    # Gateway proxy
+    log D "Starting gateway proxy"
+    error_redirect="2> >(awk '{print(\"E\", \"pepsal-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)"
+    tmux -L ${TMUX_SOCKET} new-session -s pepsal-gw -d "sudo ip netns exec osnd-gwp bash"
+    sleep $TMUX_INIT_WAIT
+    # Route marked traffic to pepsal
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "ip rule add fwmark 1 lookup 100 $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "ip route add local 0.0.0.0/0 dev lo table 100 $error_redirect" Enter
+    # Mark selected traffic for processing by pepsal
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw1 -p tcp -j TPROXY --on-port 5201 --tproxy-mark 1 $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw2 -p tcp -j TPROXY --on-port 5201 --tproxy-mark 1 $error_redirect" Enter
+    # Start pepsal
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "${PEPSAL_BIN} -p 5201 -l '${output_dir}/${run_id}_proxy_gw.txt' $error_redirect" Enter
+
+    # Satellite terminal proxy
+    log D "Starting satellite terminal proxy"
+    error_redirect="2> >(awk '{print(\"E\", \"pepsal-st-proxy:\", \$0)}' > ${OSND_TMP}/logging)"
+    tmux -L ${TMUX_SOCKET} new-session -s pepsal-st -d "sudo ip netns exec osnd-stp bash"
+    sleep $TMUX_INIT_WAIT
+    # Route marked traffic to pepsal
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "ip rule add fwmark 1 lookup 100 $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "ip route add local 0.0.0.0/0 dev lo table 100 $error_redirect" Enter
+    # Mark selected traffic for processing by pepsal
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st1 -p tcp -j TPROXY --on-port 5201 --tproxy-mark 1 $error_redirect" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st2 -p tcp -j TPROXY --on-port 5201 --tproxy-mark 1 $error_redirect" Enter
+    # Start pepsal
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st \
+        "${PEPSAL_BIN} -p 5201 -l '${output_dir}/${run_id}_proxy_st.txt' $error_redirect" \
+        Enter
+}
+
+
+# _osnd_pepsal_proxies_stop()
+function _osnd_pepsal_proxies_stop() {
+    log I "Stopping pepsal proxies"
+
+    # Gateway proxy
+    log D "Stopping gateway proxy"
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw C-d
+    sleep $CMD_SHUTDOWN_WAIT
+    sudo ip netns exec osnd-gw killall $(basename $PEPSAL_BIN) -q
+    tmux -L ${TMUX_SOCKET} kill-session -t pepsal-gw >/dev/null 2>&1
+
+    # Satellite terminal proxy
+    log D "Stopping satellite terminal proxy"
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st C-d
+    sleep $CMD_SHUTDOWN_WAIT
+    sudo ip netns exec osnd-st killall $(basename $PEPSAL_BIN) -q
+    tmux -L ${TMUX_SOCKET} kill-session -t pepsal-st >/dev/null 2>&1
+}
+
+
+# _osnd_moon_gstreamer_client_start(output_dir, run_id)
+function _osnd_moon_gstreamer_client_start() {
+    local output_dir="$1"
+    local run_id="$2"
+
+    log I "Starting GStreamer client"
+    sudo ip netns exec osnd-moon-sv killall $(basename $GST_BIN) -q
+    tmux -L ${TMUX_SOCKET} new-session -s gst-cl -d "sudo ip netns exec osnd-moon-sv bash"
+    sleep $TMUX_INIT_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "${GST_BIN} -m tcp -h ${SV_LAN_SERVER_IP_MP%%/*} -p 50001 > ${output_dir}/${run_id}_gst_client.log" Enter
+}
+
+
+# _osnd_moon_gstreamer_client_stop()
+function _osnd_moon_gstreamer_client_stop() {
+    log I "Stopping GStreamer client"
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl C-d
+    sleep $CMD_SHUTDOWN_WAIT
+    sudo ip netns exec osnd-moon-sv killall $(basename $GST_BIN) -q
+    tmux -L ${TMUX_SOCKET} kill-session -t gst-cl >/dev/null 2>&1
+}
+
+
+# _osnd_moon_gstreamer_server_start(output_dir, run_id)
+function _osnd_moon_gstreamer_server_start() {
+    local output_dir="$1"
+    local run_id="$2"
+    local timeout=20
+
+    log I "Running GStreamer server"
+    sudo timeout --foreground $timeout \
+        ip netns exec osnd-moon-cl \
+        ${GST_BIN} -s -m tcp -h ${SV_LAN_SERVER_IP_MP%%/*} -p 50001 -f ${GST_FILESRC} > ${output_dir}/${run_id}_gst_server.log
+    status=$?
+
+    # Check for error, report if any
+    if [ "$status" -ne 0 ]; then
+        emsg="gstreamer client exited with status $status"
+        if [ "$status" -eq 124 ]; then
+            emsg="${emsg} (timeout)"
+        fi
+        log E "$emsg"
+    fi
+    log D "gstreamer done"
+
+    return $status
+}
+
+
+# _osnd_moon_extract_pcap()
+function _osnd_moon_extract_pcap() {
+    local output_dir="$1"
+    local run_id="$2"
+    local file="$3"
+
+    captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_${file}.pcap >/dev/null 2>&1
+    mv ${output_dir}/throughput.data ${output_dir}/${run_id}_${file}.data
+    xz ${output_dir}/${run_id}_${file}.pcap
+}
+
+
+# _osnd_moon_process_capture()
+function _osnd_moon_process_capture() {
+    local output_dir="$1"
+    local run_id="$2"
+    local route="$3"
+
+    log I "Post-processing PCAPs in situ"
+
+    # Server
+    _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_server_gw5"
+
+    # Client
+    if [[ "$route" == "LTE" ]]; then
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_ue3"
+    elif [[ "$route" == "SAT" ]]; then
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_st3"
+    else
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_ue3"
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_st3"
+    fi
+}
+
+
+# osnd_moon_measure_rtp_metrics(scenario_config_name, output_dir, pep=false, route, run_cnt=4)
+# Run RTP measurements utilizing GStreamer framework on the emulation environment
+function osnd_moon_measure_rtp_metrics() {
+    local scenario_config_name=$1
+    local output_dir="$2"
+    local pep=${3:-false}
+    local route="$4"
+    local run_cnt=${5:-4}
+
+    local -n scenario_config_ref=$scenario_config_name
+    local base_run_id="rtp"
+    local name_ext=""
+
+    if [[ "$pep" == true ]]; then
+        base_run_id="${base_run_id}_pep"
+        name_ext="${name_ext} (PEP)"
+    fi
+
+    for i in $(seq $run_cnt); do
+        log I "RTP${name_ext} run $i/$run_cnt"
+        local run_id="${base_run_id}_$i"
+
+        # Environment
+        osnd_moon_setup $scenario_config_name "$output_dir" "$run_id" "$pep" "$route"
+        sleep $MEASURE_WAIT
+
+        # GStreamer Client
+        _osnd_moon_gstreamer_client_start "$output_dir" "$run_id"
+        sleep $MEASURE_WAIT
+
+        # Proxy
+        if [[ "$pep" == true ]]; then
+            _osnd_pepsal_proxies_start "$output_dir" "$run_id"
+            sleep $MEASURE_WAIT
+        fi
+
+        # Dump packets
+        _osnd_moon_capture_start "$output_dir" "$run_id" "$route"
+
+        # GStreamer Server
+        _osnd_moon_gstreamer_server_start "$output_dir" "$run_id"
+        sleep $MEASURE_GRACE
+
+        # Cleanup
+        if [[ "$pep" == true ]]; then
+            _osnd_pepsal_proxies_stop
+        fi
+        # _osnd_moon_gstreamer_server_stop
+        _osnd_moon_gstreamer_client_stop
+        _osnd_moon_capture_stop "$output_dir" "$run_id" "$route"
+        osnd_moon_teardown
+
+        # Do post-processing of PCAPs
+        _osnd_moon_process_capture "$output_dir" "$run_id" "$route"
+
+        sleep $RUN_WAIT
+    done
+}
+
+
+# If script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    declare -F log >/dev/null || function log() {
+        local level="$1"
+        local msg="$2"
+
+        echo "[$level] $msg"
+    }
+    declare -A scenario_config
+
+    export SCRIPT_VERSION="manual"
+    export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+    export CONFIG_DIR="${SCRIPT_DIR}/config"
+    export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
+    set -a
+    source "${CONFIG_DIR}/testbed-config.sh"
+    set +a
+
+    if [[ "$@" ]]; then
+        osnd_moon_measure_rtp_metrics scenario_config "$@"
+    else
+        osnd_moon_measure_rtp_metrics scenario_config "." 0 1
+    fi
+fi

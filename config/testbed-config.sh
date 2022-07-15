@@ -13,6 +13,10 @@ QPERF_KEY="$HOME/server.key"
 PEPSAL_BIN="$HOME/pepsal/src/pepsal"
 # iperf3 binary
 IPERF_BIN="/usr/bin/iperf3"
+# GStreamer binary
+GST_BIN="$HOME/gst-app/bin/gst_rtp"
+# GStreamer file src
+GST_FILESRC="${SCRIPT_DIR}/test_video.mp4"
 # h2o binary
 H2O_BIN="/usr/local/bin/h2o"
 # python binary
