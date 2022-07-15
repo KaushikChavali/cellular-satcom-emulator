@@ -49,6 +49,7 @@ These programs need to be cloned and built
 * [qperf](https://gitlab.lrz.de/kosekmike/qperf)
 * [pepsal](https://github.com/danielinux/pepsal)
 * [moongen](https://gitlab.lrz.de/ge36xuy/moongen-lte-emulator)
+* [GStreamer](https://github.com/GStreamer/gstreamer)
 
 The following utilities need to be installed on the system:
 
@@ -126,6 +127,7 @@ executed, each being measured 5 times.
 | `-P` | `#`        | Number of seconds to prime a new environment with some pings | `5` | M |
 | `-Q` | `<SGTC,>*` | `QUIC-specific:` Comma separated list of four qperf quicly buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` | T |
 | `-r` | `<#,>`     | `Joint Emulator-specific:` Select a routing strategy (LTE,SAT,MP) | `LTE`| J |
+| `-R` |            | Disable rtp measurements | | M |
 | `-S` | `<#,>`     | `MPTCP-specific:` scheduler (default, roundrobin, redundant, blest) | `default` | T |
 | `-T` | `#`        | Number of runs per timing measurement in a scenario | `4` | M |
 | `-U` | `<SGTC,>*` | `QUIC-specific:` Comma separated list of four qperf udp buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` | T |
