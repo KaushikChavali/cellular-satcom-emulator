@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.2.5"
+export SCRIPT_VERSION="2.2.6"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
@@ -23,7 +23,6 @@ source "${OSND_DIR}/run-ping.sh"
 source "${OSND_DIR}/run-quic.sh"
 source "${OSND_DIR}/run-tcp.sh"
 source "${OSND_DIR}/run-http.sh"
-source "${OSND_DIR}/run-rtp.sh"
 source "${OSND_DIR}/stats.sh"
 
 source "${SCRIPT_DIR}/setup.sh"
@@ -43,6 +42,7 @@ source "${SCRIPT_DIR}/run-quic.sh"
 source "${SCRIPT_DIR}/run-tcp.sh"
 source "${SCRIPT_DIR}/run-http.sh"
 source "${SCRIPT_DIR}/run-rtp.sh"
+source "${SCRIPT_DIR}/run-duplex.sh"
 declare -A pids
 
 # log(level, message...)
@@ -242,6 +242,9 @@ function _osnd_moon_generate_scenarios() {
 	if [[ "$exec_rtp" != "true" ]]; then
 		common_options="$common_options -R"
 	fi
+	if [[ "$exec_duplex" != "true" ]]; then
+		common_options="$common_options -d"
+	fi
 	if [[ ${#qlog_file} -le 0 ]]; then
 		qlog_file="${EMULATION_DIR}/client.qlog,${EMULATION_DIR}/server.qlog"
 	fi
@@ -292,7 +295,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:D:E:F:g:HI:M:N:l:L:N:O:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:E:F:g:HI:M:N:l:L:N:O:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -321,6 +324,10 @@ function _osnd_moon_read_scenario() {
 		-C | --congestion-control)
 			config_ref['ccs']="$2"
 			shift 2
+			;;
+		-d | --disable-duplex)
+			config_ref['exec_duplex']="false"
+			shift 1
 			;;
 		-D | --dump)
 			config_ref['dump']="$2"
@@ -518,6 +525,15 @@ function _osnd_moon_exec_scenario_with_config() {
 			osnd_moon_measure_rtp_metrics "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
 		fi
 	fi
+
+	if [[ "${config_ref['exec_duplex']:-true}" == true ]]; then
+		if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
+			osnd_moon_measure_tcp_duplex_metrics "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt
+		fi
+		if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
+			osnd_moon_measure_tcp_duplex_metrics "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
+		fi
+	fi
 }
 
 #_osnd_moon_get_cc(ccs, index)
@@ -558,6 +574,7 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['exec_tcp']="true"
 		scenario_config['exec_http']="true"
 		scenario_config['exec_rtp']="true"
+		scenario_config['exec_duplex']="true"
 
 		scenario_config['prime']=5
 		scenario_config['runs']=1
@@ -677,6 +694,7 @@ Scenario configuration:
   -b <#,>	 iPerf bandwith vis-à-vis the defined QoS requirements [UL/DL] (default: 20M,5M)
   -c <#,>	 MPTCP-specific: congestion control; Uncoupled [reno, cubic], Coupled [lia, olia, balia, wVegas] (default: lia)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
+  -d 		 disable duplex measurements
   -D #       dump the first # packets of a measurement
   -E <GT,>   csl of two delay values: each one value or multiple seconds-delay values (default: 125)
   -g <#,>	 csl of ground delays at the client and the server [CL_SAT,CL_LTE,SV] (default: 0,0,0)
@@ -726,6 +744,7 @@ function _osnd_moon_parse_args() {
 	exec_tcp=true
 	exec_http=true
 	exec_rtp=true
+	exec_duplex=true
 	scenario_file=""
 	dump_packets=0
 	qlog_file=""
@@ -739,7 +758,7 @@ function _osnd_moon_parse_args() {
 	local -a new_iperf_bw=()
 	local -a new_ground_delays=()
 	local measure_cli_args="false"
-	while getopts "b:c:f:g:hl:p:r:st:vA:B:C:D:E:F:HI:L:N:O:P:Q:RS:T:U:VWXYZ" opt; do
+	while getopts "b:c:df:g:hl:p:r:st:vA:B:C:D:E:F:HI:L:N:O:P:Q:RS:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -759,6 +778,9 @@ function _osnd_moon_parse_args() {
 			;;
 		c)
 			IFS=',' read -ra mptcp_cc_algorithms <<<"$OPTARG"
+			;;
+		d)
+			exec_duplex=false
 			;;
 		f)
 			if [[ "$measure_cli_args" == "true" ]]; then

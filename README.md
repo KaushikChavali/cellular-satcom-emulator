@@ -113,6 +113,7 @@ executed, each being measured 5 times.
 | `-B` | `<GT,>*`   | `QUIC-specific:` Comma separated list of two qperf transfer buffer sizes for gateway and terminal. Repeat parameter for multiple configurations | `1M,1M` | T |
 | `-c` | `<#,>`     | `MPTCP-specific:` congestion control; Uncoupled (cubic, reno), Coupled (lia, olia, wVegas, balia);  Overrides single-path CC at end hosts (-C) option | `lia` | T |
 | `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. (c = cubic, r = reno) | `rrrr` | T |
+| `-d` |            | Disable duplex measurements | | M |
 | `-D` | `#`        | dump the first # packets of a measurement | | M |
 | `-E` | `<GT,>`    | csl of two delay values: each one value or multiple seconds-delay values | `125` | M |
 | `-F` | `<#,>*`    | `QUIC-specific:` csl of three values: max. ACK Delay, packet no. after which first ack frequency packet is sent, fraction of CWND to be used in ACK frequency frame | `25, 1000, 8` | T |
