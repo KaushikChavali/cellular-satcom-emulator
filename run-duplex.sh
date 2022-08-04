@@ -50,14 +50,14 @@ function _capture_stop() {
 }
 
 
-# _osnd_moon_gstreamer_client_stop()
-function _osnd_moon_gstreamer_client_stop() {
+# _osnd_moon_gstreamer_client_stop_roq_app()
+function _osnd_moon_gstreamer_client_stop_roq_app() {
     log I "Stopping GStreamer client"
     tmux -L ${TMUX_SOCKET} send-keys -t gst-cl C-c
     sleep $CMD_SHUTDOWN_WAIT
     tmux -L ${TMUX_SOCKET} send-keys -t gst-cl C-d
     sleep $CMD_SHUTDOWN_WAIT
-    sudo ip netns exec osnd-moon-sv killall $(basename $GST_BIN) -q
+    sudo ip netns exec osnd-moon-sv killall $(basename $ROQ_BIN) -q
     tmux -L ${TMUX_SOCKET} kill-session -t gst-cl >/dev/null 2>&1
 }
 
@@ -95,7 +95,6 @@ function _osnd_moon_iperf_measure() {
     tmux -L ${TMUX_SOCKET} new-session -s iperf-cl -d "sudo ip netns exec osnd-moon-cl bash"
     sleep $TMUX_INIT_WAIT
     tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile '${output_dir}/${run_id}_client.json'" Enter
-
 }
 
 
@@ -109,16 +108,18 @@ function _osnd_moon_iperf_client_stop() {
 }
 
 
-# _osnd_moon_gstreamer_client_start(output_dir, run_id)
-function _osnd_moon_gstreamer_client_start() {
+# _osnd_moon_gstreamer_client_start_roq_app(output_dir, run_id)
+function _osnd_moon_gstreamer_client_start_roq_app() {
     local output_dir="$1"
     local run_id="$2"
 
     log I "Starting GStreamer client"
-    sudo ip netns exec osnd-moon-sv killall $(basename $GST_BIN) -q
+    sudo ip netns exec osnd-moon-sv killall $(basename $ROQ_BIN) -q
     tmux -L ${TMUX_SOCKET} new-session -s gst-cl -d "sudo ip netns exec osnd-moon-sv bash"
     sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "${GST_BIN} -m tcp -h ${SV_LAN_SERVER_IP_MP%%/*} -p 50001 > ${output_dir}/${run_id}_gst_client.log" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "$( cd ../gst-timecode ; export GST_PLUGIN_PATH='$(pwd)/builddir/' )"
+    sleep $TMUX_INIT_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "GST_DEBUG=*:3 ${ROQ_BIN} receive -a :4242 --sink fpsdisplaysink --fps-dump ${output_dir}/${run_id}_test.fps.csv --rtp-dump ${output_dir}/${run_id}_test.rtp.csv --save ${output_dir}/${run_id}_test.avi --transport tcp > '${output_dir}/${run_id}_gst_client.log'" Enter
 }
 
 
@@ -134,17 +135,15 @@ function _osnd_moon_gstreamer_client_stop() {
 }
 
 
-# _osnd_moon_gstreamer_server_start(output_dir, run_id)
-function _osnd_moon_gstreamer_server_start() {
+# _osnd_moon_gstreamer_server_start_roq_app(output_dir, run_id)
+function _osnd_moon_gstreamer_server_start_roq_app() {
     local output_dir="$1"
     local run_id="$2"
-    local timeout=20
 
     log I "Running GStreamer server"
-    tmux -L ${TMUX_SOCKET} new-session -s gst-sv -d "sudo ip netns exec osnd-moon-cl bash"
-    sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t gst-sv "${GST_BIN} -s -m tcp -h ${SV_LAN_SERVER_IP_MP%%/*} -p 50001 -f ${GST_FILESRC}> ${output_dir}/${run_id}_gst_server.log" Enter
-
+    sudo ip netns exec osnd-moon-cl $( cd ../gst-timecode ; export GST_PLUGIN_PATH="$(pwd)/builddir/" )
+    timeout $MEASURE_TIME ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_test.rtp.csv --cc-dump ${output_dir}/${run_id}_test.cc.csv --save ${output_dir}/${run_id}_test.avi --transport tcp --init-rate 25000000 > ${output_dir}/${run_id}_gst_server.log
+    log I "Measurement complete"
 }
 
 
@@ -247,7 +246,7 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         sleep $CMD_SHUTDOWN_WAIT
 
         # Start GStreamer client
-        _osnd_moon_gstreamer_client_start "$output_dir" "$run_id"
+        _osnd_moon_gstreamer_client_start_roq_app "$output_dir" "$run_id"
         sleep $MEASURE_WAIT
 
         # Proxy
@@ -263,8 +262,7 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
 
         # Start GStreamer server
-        _osnd_moon_gstreamer_server_start "$output_dir" "$run_id"
-        sleep $MEASURE_TIME
+        _osnd_moon_gstreamer_server_start_roq_app "$output_dir" "$run_id"
         sleep $MEASURE_GRACE
 
         _osnd_moon_iperf_client_stop "osnd-moon-cl" "client-dl"
@@ -276,7 +274,7 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         fi
 
         _osnd_moon_iperf_server_stop "iperf" "osnd-moon-sv"
-        _osnd_moon_gstreamer_client_stop
+        _osnd_moon_gstreamer_client_stop_roq_app
 
         _osnd_moon_capture_stop "$output_dir" "$run_id" "$route"
         osnd_moon_teardown
