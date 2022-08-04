@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # _osnd_moon_capture_start(output_dir, run_id, route)
 function _osnd_moon_capture_start() {
     local output_dir="$1"
@@ -133,54 +135,42 @@ function _osnd_pepsal_proxies_stop() {
 }
 
 
-# _osnd_moon_gstreamer_client_start(output_dir, run_id)
-function _osnd_moon_gstreamer_client_start() {
+# _osnd_moon_gstreamer_client_start_roq_app(output_dir, run_id)
+function _osnd_moon_gstreamer_client_start_roq_app() {
     local output_dir="$1"
     local run_id="$2"
 
     log I "Starting GStreamer client"
-    sudo ip netns exec osnd-moon-sv killall $(basename $GST_BIN) -q
+    sudo ip netns exec osnd-moon-sv killall $(basename $ROQ_BIN) -q
     tmux -L ${TMUX_SOCKET} new-session -s gst-cl -d "sudo ip netns exec osnd-moon-sv bash"
     sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "${GST_BIN} -m tcp -h ${SV_LAN_SERVER_IP_MP%%/*} -p 50001 > ${output_dir}/${run_id}_gst_client.log" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "$( cd ../gst-timecode ; export GST_PLUGIN_PATH='$(pwd)/builddir/' )"
+    sleep $TMUX_INIT_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "GST_DEBUG=*:3 ${ROQ_BIN} receive -a :4242 --sink fpsdisplaysink --fps-dump ${output_dir}/${run_id}_test.fps.csv --rtp-dump ${output_dir}/${run_id}_test.rtp.csv --save ${output_dir}/${run_id}_test.avi --transport tcp > '${output_dir}/${run_id}_gst_client.log'" Enter
 }
 
 
-# _osnd_moon_gstreamer_client_stop()
-function _osnd_moon_gstreamer_client_stop() {
+# _osnd_moon_gstreamer_client_stop_roq_app()
+function _osnd_moon_gstreamer_client_stop_roq_app() {
     log I "Stopping GStreamer client"
     tmux -L ${TMUX_SOCKET} send-keys -t gst-cl C-c
     sleep $CMD_SHUTDOWN_WAIT
     tmux -L ${TMUX_SOCKET} send-keys -t gst-cl C-d
     sleep $CMD_SHUTDOWN_WAIT
-    sudo ip netns exec osnd-moon-sv killall $(basename $GST_BIN) -q
+    sudo ip netns exec osnd-moon-sv killall $(basename $ROQ_BIN) -q
     tmux -L ${TMUX_SOCKET} kill-session -t gst-cl >/dev/null 2>&1
 }
 
 
-# _osnd_moon_gstreamer_server_start(output_dir, run_id)
-function _osnd_moon_gstreamer_server_start() {
+# _osnd_moon_gstreamer_server_start_roq_app(output_dir, run_id)
+function _osnd_moon_gstreamer_server_start_roq_app() {
     local output_dir="$1"
     local run_id="$2"
-    local timeout=20
 
     log I "Running GStreamer server"
-    sudo timeout --foreground $timeout \
-        ip netns exec osnd-moon-cl \
-        ${GST_BIN} -s -m tcp -h ${SV_LAN_SERVER_IP_MP%%/*} -p 50001 -f ${GST_FILESRC} > ${output_dir}/${run_id}_gst_server.log
-    status=$?
-
-    # Check for error, report if any
-    if [ "$status" -ne 0 ]; then
-        emsg="gstreamer client exited with status $status"
-        if [ "$status" -eq 124 ]; then
-            emsg="${emsg} (timeout)"
-        fi
-        log E "$emsg"
-    fi
-    log D "gstreamer done"
-
-    return $status
+    sudo ip netns exec osnd-moon-cl $( cd ../gst-timecode ; export GST_PLUGIN_PATH="$(pwd)/builddir/" )
+    timeout $MEASURE_TIME ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_test.rtp.csv --cc-dump ${output_dir}/${run_id}_test.cc.csv --save ${output_dir}/${run_id}_test.avi --transport tcp --init-rate 25000000 > ${output_dir}/${run_id}_gst_server.log
+    log I "Measurement complete"
 }
 
 
@@ -219,9 +209,9 @@ function _osnd_moon_process_capture() {
 }
 
 
-# osnd_moon_measure_rtp_metrics(scenario_config_name, output_dir, pep=false, route, run_cnt=4)
+# osnd_moon_measure_rtp_metrics_with_roq(scenario_config_name, output_dir, pep=false, route, run_cnt=4)
 # Run RTP measurements utilizing GStreamer framework on the emulation environment
-function osnd_moon_measure_rtp_metrics() {
+function osnd_moon_measure_rtp_metrics_with_roq() {
     local scenario_config_name=$1
     local output_dir="$2"
     local pep=${3:-false}
@@ -246,7 +236,7 @@ function osnd_moon_measure_rtp_metrics() {
         sleep $MEASURE_WAIT
 
         # GStreamer Client
-        _osnd_moon_gstreamer_client_start "$output_dir" "$run_id"
+        _osnd_moon_gstreamer_client_start_roq_app "$output_dir" "$run_id"
         sleep $MEASURE_WAIT
 
         # Proxy
@@ -259,7 +249,7 @@ function osnd_moon_measure_rtp_metrics() {
         _osnd_moon_capture_start "$output_dir" "$run_id" "$route"
 
         # GStreamer Server
-        _osnd_moon_gstreamer_server_start "$output_dir" "$run_id"
+        _osnd_moon_gstreamer_server_start_roq_app "$output_dir" "$run_id"
         sleep $MEASURE_GRACE
 
         # Cleanup
@@ -267,7 +257,7 @@ function osnd_moon_measure_rtp_metrics() {
             _osnd_pepsal_proxies_stop
         fi
         # _osnd_moon_gstreamer_server_stop
-        _osnd_moon_gstreamer_client_stop
+        _osnd_moon_gstreamer_client_stop_roq_app
         _osnd_moon_capture_stop "$output_dir" "$run_id" "$route"
         osnd_moon_teardown
 
@@ -298,8 +288,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     set +a
 
     if [[ "$@" ]]; then
-        osnd_moon_measure_rtp_metrics scenario_config "$@"
+        osnd_moon_measure_rtp_metrics_with_roq scenario_config "$@"
     else
-        osnd_moon_measure_rtp_metrics scenario_config "." 0 1
+        osnd_moon_measure_rtp_metrics_with_roq scenario_config "." 0 1
     fi
 fi

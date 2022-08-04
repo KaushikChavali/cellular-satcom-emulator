@@ -519,10 +519,10 @@ function _osnd_moon_exec_scenario_with_config() {
 
 	if [[ "${config_ref['exec_rtp']:-true}" == true ]]; then
 		if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
-			osnd_moon_measure_rtp_metrics "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt
+			osnd_moon_measure_rtp_metrics_with_roq "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt
 		fi
 		if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
-			osnd_moon_measure_rtp_metrics "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
+			osnd_moon_measure_rtp_metrics_with_roq "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
 		fi
 	fi
 
