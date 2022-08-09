@@ -144,9 +144,11 @@ function _osnd_moon_gstreamer_client_start_roq_app() {
     sudo ip netns exec osnd-moon-sv killall $(basename $ROQ_BIN) -q
     tmux -L ${TMUX_SOCKET} new-session -s gst-cl -d "sudo ip netns exec osnd-moon-sv bash"
     sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "$( cd ../gst-timecode ; export GST_PLUGIN_PATH='$(pwd)/builddir/' )"
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "cd ${GST_TIMECODE}" Enter
     sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "GST_DEBUG=*:3 ${ROQ_BIN} receive -a :4242 --sink fpsdisplaysink --fps-dump ${output_dir}/${run_id}_test.fps.csv --rtp-dump ${output_dir}/${run_id}_test.rtp.csv --save ${output_dir}/${run_id}_test.avi --transport tcp > '${output_dir}/${run_id}_gst_client.log'" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "export GST_PLUGIN_PATH='$(pwd)/builddir/'" Enter
+    sleep $TMUX_INIT_WAIT
+    ip netns exec osnd-moon-sv ${ROQ_BIN} receive -a :4242 --sink fpsdisplaysink --fps-dump ${output_dir}/${run_id}_receiver.fps.csv --rtp-dump ${output_dir}/${run_id}_receiver.rtp.csv --save ${output_dir}/${run_id}_receiver.avi --transport tcp &
 }
 
 
@@ -168,9 +170,26 @@ function _osnd_moon_gstreamer_server_start_roq_app() {
     local run_id="$2"
 
     log I "Running GStreamer server"
-    sudo ip netns exec osnd-moon-cl $( cd ../gst-timecode ; export GST_PLUGIN_PATH="$(pwd)/builddir/" )
-    timeout $MEASURE_TIME ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_test.rtp.csv --cc-dump ${output_dir}/${run_id}_test.cc.csv --save ${output_dir}/${run_id}_test.avi --transport tcp --init-rate 25000000 > ${output_dir}/${run_id}_gst_server.log
+    tmux -L ${TMUX_SOCKET} new-session -s gst-sv -d "sudo ip netns exec osnd-moon-cl bash"
+    sleep $TMUX_INIT_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-sv "cd ${GST_TIMECODE}" Enter
+    sleep $TMUX_INIT_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-sv "export GST_PLUGIN_PATH='$(pwd)/builddir/'" Enter
+    sleep $TMUX_INIT_WAIT
+    timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000
     log I "Measurement complete"
+}
+
+
+# _osnd_moon_gstreamer_server_stop_roq_app()
+function _osnd_moon_gstreamer_server_stop_roq_app() {
+    log I "Stopping GStreamer server"
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-sv C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t gst-sv C-d
+    sleep $CMD_SHUTDOWN_WAIT
+    sudo ip netns exec osnd-moon-cl killall $(basename $ROQ_BIN) -q
+    tmux -L ${TMUX_SOCKET} kill-session -t gst-sv >/dev/null 2>&1
 }
 
 
@@ -258,6 +277,7 @@ function osnd_moon_measure_rtp_metrics_with_roq() {
         fi
         # _osnd_moon_gstreamer_server_stop
         _osnd_moon_gstreamer_client_stop_roq_app
+        _osnd_moon_gstreamer_server_stop_roq_app
         _osnd_moon_capture_stop "$output_dir" "$run_id" "$route"
         osnd_moon_teardown
 

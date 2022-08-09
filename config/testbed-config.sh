@@ -15,6 +15,10 @@ PEPSAL_BIN="$HOME/pepsal/src/pepsal"
 IPERF_BIN="/usr/bin/iperf3"
 # GStreamer binary
 GST_BIN="$HOME/gst-app/bin/gst_rtp"
+# GST video timecode path
+GST_TIMECODE="$HOME/gst-timecode"
+# GStreamer RTP-over-QUIC dir
+ROQ_DIR="$HOME/rtp-over-quic"
 # GStreamer RTP-over-QUIC binary
 ROQ_BIN="$HOME/rtp-over-quic/roq"
 # GStreamer file src
