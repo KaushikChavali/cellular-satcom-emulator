@@ -123,3 +123,5 @@ TMUX_INIT_WAIT=0.1
 CMD_CONFIG_PAUSE=0.5
 # Name of the tmux socket to run all the sessions on
 TMUX_SOCKET="opensand-moongen"
+# tcpdump snapshot length (in bytes)
+SNAP_LEN=65535
