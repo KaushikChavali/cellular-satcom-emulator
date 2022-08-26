@@ -17,6 +17,14 @@ RATE_UL=40
 LATENCY_DL=10
 LATENCY_UL=30
 
+# Variable bitrate file path (set it empty if fixed rate is employed)
+VAR_RATE_DL="/home/quic_net03/lte-satcom-emulator/config/bitrate_dl.csv"
+VAR_RATE_UL="/home/quic_net03/lte-satcom-emulator/config/bitrate_ul.csv"
+
+# Variable emulated latency file path (set it empty if fixed latency is employed)
+VAR_LATENCY_DL="/home/quic_net03/lte-satcom-emulator/config/latency_dl.csv"
+VAR_LATENCY_UL="/home/quic_net03/lte-satcom-emulator/config/latency_ul.csv"
+
 # Maximum number of packets to hold in the delay line
 QDEPTH_DL=1000
 QDEPTH_UL=350
