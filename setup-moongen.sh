@@ -10,7 +10,7 @@ function moon_setup_moongen() {
     sudo killall lte-emulation -q
     tmux -L ${TMUX_SOCKET} new-session -s lte-emulation -d "sudo bash"
     sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t lte-emulation "sudo ${MOONGEN_BIN} ${MOONGEN_SCRIPT_DIR}/${MOONGEN_SCRIPT} -d ${DEV_0} ${DEV_1} -r ${RATE_DL} ${RATE_UL} -l ${LATENCY_DL} ${LATENCY_UL} -q ${QDEPTH_DL} ${QDEPTH_UL} -u ${CATCHUP_RATE_DL} ${CATCHUP_RATE_UL} -c ${CONCEALED_LOSS_DL} ${CONCEALED_LOSS_UL} -o ${LOSS_DL} ${LOSS_UL} --variable_delay ${VAR_LATENCY_UL} {VAR_LATENCY_DL} --variable_rate ${VAR_RATE_UL} ${VAR_RATE_DL} --ho_pcm ${HO_PCM} --ho_frequency ${HO_FREQ_MEAN} ${HO_FREQ_VARIANCE} > '${output_dir}/${run_id}_moongen.log'" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t lte-emulation "sudo ${MOONGEN_BIN} ${MOONGEN_SCRIPT_DIR}/${MOONGEN_SCRIPT} -d ${DEV_0} ${DEV_1} -r ${RATE_DL} ${RATE_UL} -l ${LATENCY_DL} ${LATENCY_UL} -q ${QDEPTH_DL} ${QDEPTH_UL} -u ${CATCHUP_RATE_DL} ${CATCHUP_RATE_UL} -c ${CONCEALED_LOSS_DL} ${CONCEALED_LOSS_UL} -o ${LOSS_DL} ${LOSS_UL} --variable_delay ${VAR_LATENCY_UL} ${VAR_LATENCY_DL} --variable_rate ${VAR_RATE_UL} ${VAR_RATE_DL} --ho_pcm ${HO_PCM} --ho_frequency ${HO_FREQ_MEAN} ${HO_FREQ_VARIANCE} > '${output_dir}/${run_id}_moongen.log'" Enter
 }
 
 # If script is executed directly

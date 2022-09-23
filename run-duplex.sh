@@ -71,18 +71,23 @@ function _osnd_moon_capture_stop() {
 }
 
 
-# _osnd_moon_iperf_measure(output_dir, run_id, bandwidth, measure_secs, timeout)
+# _osnd_moon_iperf_measure(output_dir, run_id, bandwidth, measure_secs, timeout, route)
 function _osnd_moon_iperf_measure() {
     local output_dir="$1"
     local run_id="$2"
     local bandwidth="$3"
     local measure_secs="$4"
     local timeout="$5"
+    local route="$6"
 
     log I "Running iperf client"
     tmux -L ${TMUX_SOCKET} new-session -s iperf-cl -d "sudo ip netns exec osnd-moon-cl bash"
     sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile '${output_dir}/${run_id}_client.json'" Enter
+    if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile '${output_dir}/${run_id}_client.json'" Enter
+    else
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${SV_LAN_SERVER_IP_MP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile '${output_dir}/${run_id}_client.json'" Enter
+    fi
 }
 
 
@@ -129,6 +134,7 @@ function _osnd_moon_gstreamer_client_stop_roq_app() {
 function _osnd_moon_gstreamer_server_start_roq_app() {
     local output_dir="$1"
     local run_id="$2"
+    local route="$3"
 
     log I "Running GStreamer server"
     tmux -L ${TMUX_SOCKET} new-session -s gst-sv -d "sudo ip netns exec osnd-moon-cl bash"
@@ -137,7 +143,11 @@ function _osnd_moon_gstreamer_server_start_roq_app() {
     sleep $TMUX_INIT_WAIT
     tmux -L ${TMUX_SOCKET} send-keys -t gst-sv "export GST_PLUGIN_PATH='$(pwd)/builddir/'" Enter
     sleep $TMUX_INIT_WAIT
-    timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000
+    if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
+        timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000
+    else
+        timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000
+    fi
     log I "Measurement complete"
 }
 
@@ -190,7 +200,7 @@ function _osnd_moon_extract_pcap() {
 
     captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_${file}.pcap >/dev/null 2>&1
     mv ${output_dir}/throughput.data ${output_dir}/${run_id}_${file}.data
-    xz ${output_dir}/${run_id}_${file}.pcap
+    xz -T0 ${output_dir}/${run_id}_${file}.pcap
 }
 
 
@@ -266,10 +276,10 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         _osnd_moon_capture_start "$output_dir" "$run_id" "$route"
 
          # Start iPerf client        
-        _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
+        _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l) "$route"
 
         # Start GStreamer server
-        _osnd_moon_gstreamer_server_start_roq_app "$output_dir" "$run_id"
+        _osnd_moon_gstreamer_server_start_roq_app "$output_dir" "$run_id" "$route"
         sleep $MEASURE_GRACE
 
         _osnd_moon_iperf_client_stop "osnd-moon-cl" "client-dl"
