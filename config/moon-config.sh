@@ -10,19 +10,19 @@ DEV_0=0
 DEV_1=1
 
 # Forwarding rates in Mbps (two values for two links)
-RATE_DL=38
-RATE_UL=40
+RATE_DL=25
+RATE_UL=43
 
 # Fixed emulated latency (in ms) on the link.
-LATENCY_DL=10
-LATENCY_UL=30
+LATENCY_DL=45
+LATENCY_UL=42
 
 # Variable bitrate file path (set it empty if fixed rate is employed)
 VAR_RATE_DL="$HOME/lte-satcom-emulator/config/bitrate_dl.csv"
 VAR_RATE_UL="$HOME/lte-satcom-emulator/config/bitrate_ul.csv"
 
 # Variable emulated latency file path (set it empty if fixed latency is employed)
-VAR_LATENCY_DL="$HOME/lte-satcom-emulator/config/latency_dl.csv"
+VAR_LATENCY_DL="\"\""
 VAR_LATENCY_UL="$HOME/lte-satcom-emulator/config/latency_ul.csv"
 
 # Maximum number of packets to hold in the delay line
@@ -38,8 +38,8 @@ CONCEALED_LOSS_DL=0.005
 CONCEALED_LOSS_UL=0.005
 
 # Rate of packet drops
-LOSS_DL=0.001
-LOSS_UL=0.001
+LOSS_DL=0.0006
+LOSS_UL=0.0006
 
 # The number of people/cell/minute, used for calculating the handover interruption time (HIT)
 HO_PCM=2.5

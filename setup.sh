@@ -184,7 +184,7 @@ function osnd_moon_setup() {
 	local output_dir="${2:-.}"
 	local run_id="${3:-manual}"
 	local pep="${4:-false}"
-	local route="${5:-LTE}"
+	local route="${5:-MP}"
 
 	# Extract associative array with defaults
 	local cc_cl="${scenario_config_ref['cc_cl']:-reno}"
@@ -193,7 +193,7 @@ function osnd_moon_setup() {
 	local cc_gw="${scenario_config_ref['cc_gw']:-reno}"
 	local cc_sv="${scenario_config_ref['cc_sv']:-reno}"
 	local prime="${scenario_config_ref['prime']:-4}"
-	local orbit="${scenario_config_ref['orbit']:-GEO}"
+	local orbit="${scenario_config_ref['orbit']:-NONE}"
 	local attenuation="${scenario_config_ref['attenuation']:-0}"
 	local modulation_id="${scenario_config_ref['modulation_id']:-1}"
 	local dump="${scenario_config_ref['dump']:-65535}"
@@ -202,8 +202,8 @@ function osnd_moon_setup() {
 	local delay_cl_sat="${scenario_config_ref['delay_cl_sat']:-0}"
 	local delay_cl_lte="${scenario_config_ref['delay_cl_lte']:-0}"
 	local delay_sv="${scenario_config_ref['delay_sv']:-0}"
-	local delay_gw="${scenario_config_ref['delay_gw']:-125}"
-	local delay_st="${scenario_config_ref['delay_st']:-125}"
+	local delay_gw="${scenario_config_ref['delay_gw']:-0}"
+	local delay_st="${scenario_config_ref['delay_st']:-0}"
 	local packet_loss="${scenario_config_ref['loss']:-0}"
 
 	local iw_sv="${scenario_config['iw_sv']}"

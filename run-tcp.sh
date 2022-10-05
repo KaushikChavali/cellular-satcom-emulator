@@ -74,9 +74,7 @@ function _osnd_moon_extract_pcap() {
     local run_id="$2"
     local file="$3"
 
-    captcp throughput -s 1 -u bit -i -o ${output_dir} ${output_dir}/${run_id}_${file}.pcap >/dev/null 2>&1
-    mv ${output_dir}/throughput.data ${output_dir}/${run_id}_${file}.data
-    xz ${output_dir}/${run_id}_${file}.pcap
+    xz -T0 ${output_dir}/${run_id}_${file}.pcap
 }
 
 # _osnd_moon_process_capture()

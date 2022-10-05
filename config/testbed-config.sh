@@ -44,7 +44,7 @@ MOONGEN_BIN="$HOME/MoonGen/build/MoonGen"
 # MoonGen LTE script dir
 MOONGEN_SCRIPT_DIR="$HOME/MoonGen/examples"
 # MoonGen LTE script title
-MOONGEN_SCRIPT="lte-emulator-handover.lua"
+MOONGEN_SCRIPT="lte-emulator-handover-air.lua"
 # OpenSAND directory
 OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
 # chromium python script
@@ -124,4 +124,4 @@ CMD_CONFIG_PAUSE=0.5
 # Name of the tmux socket to run all the sessions on
 TMUX_SOCKET="opensand-moongen"
 # tcpdump snapshot length (in bytes)
-SNAP_LEN=65535
+SNAP_LEN=96
