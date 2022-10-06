@@ -78,7 +78,6 @@ function _osnd_moon_iperf_measure() {
     local bandwidth="$3"
     local measure_secs="$4"
     local timeout="$5"
-    local route="$6"
 
     log I "Running iperf client"
     tmux -L ${TMUX_SOCKET} new-session -s iperf-cl -d "sudo ip netns exec osnd-moon-cl bash"
@@ -274,7 +273,7 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         _osnd_moon_capture_start "$output_dir" "$run_id" "$route"
 
          # Start iPerf client        
-        _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l) "$route"
+        _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
 
         # Start GStreamer server
         _osnd_moon_gstreamer_server_start_roq_app "$output_dir" "$run_id" "$route"
