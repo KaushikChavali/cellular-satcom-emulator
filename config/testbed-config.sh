@@ -12,7 +12,7 @@ QPERF_KEY="$HOME/server.key"
 # pepsal binary
 PEPSAL_BIN="$HOME/pepsal/src/pepsal"
 # iperf3 binary
-IPERF_BIN="/usr/bin/iperf3"
+IPERF_BIN="/usr/bin/iperf"
 # GStreamer binary
 GST_BIN="$HOME/gst-app/bin/gst_rtp"
 # GST video timecode path
