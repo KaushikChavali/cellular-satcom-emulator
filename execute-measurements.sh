@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.2.9"
+export SCRIPT_VERSION="2.2.10"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
@@ -245,6 +245,9 @@ function _osnd_moon_generate_scenarios() {
 	if [[ "$exec_duplex" != "true" ]]; then
 		common_options="$common_options -d"
 	fi
+	if [[ "$save_video" != "true" ]]; then
+		common_options="$common_options -o"
+	fi
 	if [[ ${#qlog_file} -le 0 ]]; then
 		qlog_file="${EMULATION_DIR}/client.qlog,${EMULATION_DIR}/server.qlog"
 	fi
@@ -368,6 +371,10 @@ function _osnd_moon_read_scenario() {
 		-L | --loss)
 			config_ref['loss']="$2"
 			shift 2
+			;;
+		-o | --disable-video-logging)
+			config_ref['save_video']="false"
+			shift 1
 			;;
 		-O | --orbit)
 			config_ref['orbit']="$2"
@@ -576,6 +583,8 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['exec_rtp']="true"
 		scenario_config['exec_duplex']="true"
 
+		scenario_config['save_video']="true"
+
 		scenario_config['prime']=5
 		scenario_config['runs']=1
 		scenario_config['timing_runs']=4
@@ -704,6 +713,7 @@ Scenario configuration:
   -l <#,>    QUIC-specific: csl of two file paths for qlog file output: client, server (default: server.qlog und client.qlog in output directory) 
   -L <#,>    percentages of packets to be dropped (default: 0%)
   -N #       number of goodput measurements per config (default: 1)
+  -o		 save rtp-over-quic app video streams at end-hosts
   -O <#,>    csl of orbits to measure (GEO|MEO|LEO) (default: GEO)
   -p <#,>	 MPTCP-specific: advanced path-manager control (default, fullmesh, binder, netlink) (default: fullmesh) 
   -P #       seconds to prime a new environment with some pings (default: 5)
@@ -745,6 +755,7 @@ function _osnd_moon_parse_args() {
 	exec_http=true
 	exec_rtp=true
 	exec_duplex=true
+	save_video=true
 	scenario_file=""
 	dump_packets=0
 	qlog_file=""
@@ -758,7 +769,7 @@ function _osnd_moon_parse_args() {
 	local -a new_iperf_bw=()
 	local -a new_ground_delays=()
 	local measure_cli_args="false"
-	while getopts "b:c:df:g:hl:p:r:st:vA:B:C:D:E:F:HI:L:N:O:P:Q:RS:T:U:VWXYZ" opt; do
+	while getopts "b:c:df:g:hl:op:r:st:vA:B:C:D:E:F:HI:L:N:O:P:Q:RS:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -815,6 +826,9 @@ function _osnd_moon_parse_args() {
 				exit 1
 			fi
 			qlog_file=$OPTARG
+			;;
+		o)
+			save_video=false
 			;;
 		p)
 			IFS=',' read -ra mptcp_path_managers <<<"$OPTARG"

@@ -108,9 +108,15 @@ function _osnd_moon_iperf_measure() {
     local timeout="$5"
 
     log I "Running iperf client"
-    sudo timeout --foreground $timeout \
-        ip netns exec osnd-moon-cl \
-        ${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} -r
+    if [[ "$route" == "SAT" ]]; then
+    	sudo timeout --foreground $timeout \
+        	ip netns exec osnd-moon-sv \
+        	${IPERF_BIN} -c ${CL_LAN_CLIENT_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > "${output_dir}/${run_id}_iperf_client.log" 2>&1
+    else
+    	sudo timeout --foreground $timeout \
+        	ip netns exec osnd-moon-sv \
+        	${IPERF_BIN} -c ${CL_LAN_CLIENT_IP_MG%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > "${output_dir}/${run_id}_iperf_client.log" 2>&1
+    fi
     status=$?
 
     # Check for error, report if any
@@ -158,9 +164,9 @@ function _osnd_moon_iperf_server_start() {
 
     log I "Starting iperf server"
     sudo ip netns exec osnd-moon-sv killall $(basename $IPERF_BIN) -q
-    tmux -L ${TMUX_SOCKET} new-session -s iperf -d "sudo ip netns exec osnd-moon-sv bash"
+    tmux -L ${TMUX_SOCKET} new-session -s iperf -d "sudo ip netns exec osnd-moon-cl bash"
     sleep $TMUX_INIT_WAIT
-    tmux -L ${TMUX_SOCKET} send-keys -t iperf "${IPERF_BIN} -s -p 5201 -i ${REPORT_INTERVAL} 2> >(awk '{print(\"E\", \"iperf-server:\", \$0)}' > ${OSND_TMP}/logging)" Enter
+    tmux -L ${TMUX_SOCKET} send-keys -t iperf "${IPERF_BIN} -s -p 5201 -i ${REPORT_INTERVAL} > ${output_dir}/${run_id}_iperf_server.log 2>&1" Enter
 }
 
 # _osnd_moon_iperf_server_stop()
@@ -302,7 +308,7 @@ function osnd_moon_measure_tcp_goodput() {
 
         # Client
         _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
-        sleep $MEASURE_TIME
+	    sleep $MEASURE_TIME
         sleep $MEASURE_GRACE
 
         # Cleanup
@@ -395,3 +401,4 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
         osnd_moon_measure_tcp_goodput scenario_config "." 0 1
     fi
 fi
+
