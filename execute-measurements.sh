@@ -245,7 +245,7 @@ function _osnd_moon_generate_scenarios() {
 	if [[ "$exec_duplex" != "true" ]]; then
 		common_options="$common_options -d"
 	fi
-	if [[ "$save_video" != "true" ]]; then
+	if [[ "$save_video" != "false" ]]; then
 		common_options="$common_options -o"
 	fi
 	if [[ ${#qlog_file} -le 0 ]]; then
@@ -373,7 +373,7 @@ function _osnd_moon_read_scenario() {
 			shift 2
 			;;
 		-o | --enable-video-logging)
-			config_ref['save_video']="false"
+			config_ref['save_video']="true"
 			shift 1
 			;;
 		-O | --orbit)
@@ -583,7 +583,7 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['exec_rtp']="true"
 		scenario_config['exec_duplex']="true"
 
-		scenario_config['save_video']="true"
+		scenario_config['save_video']="false"
 
 		scenario_config['prime']=5
 		scenario_config['runs']=1
@@ -755,7 +755,7 @@ function _osnd_moon_parse_args() {
 	exec_http=true
 	exec_rtp=true
 	exec_duplex=true
-	save_video=true
+	save_video=false
 	scenario_file=""
 	dump_packets=0
 	qlog_file=""
@@ -828,7 +828,7 @@ function _osnd_moon_parse_args() {
 			qlog_file=$OPTARG
 			;;
 		o)
-			save_video=false
+			save_video=true
 			;;
 		p)
 			IFS=',' read -ra mptcp_path_managers <<<"$OPTARG"
