@@ -139,6 +139,7 @@ function _osnd_pepsal_proxies_stop() {
 function _osnd_moon_gstreamer_client_start_roq_app() {
     local output_dir="$1"
     local run_id="$2"
+    local save_video="$3"
 
     log I "Starting GStreamer client"
     sudo ip netns exec osnd-moon-sv killall $(basename $ROQ_BIN) -q
@@ -148,7 +149,11 @@ function _osnd_moon_gstreamer_client_start_roq_app() {
     sleep $TMUX_INIT_WAIT
     tmux -L ${TMUX_SOCKET} send-keys -t gst-cl "export GST_PLUGIN_PATH='$(pwd)/builddir/'" Enter
     sleep $TMUX_INIT_WAIT
-    (cd ${ROQ_DIR} && ip netns exec osnd-moon-sv ${ROQ_BIN} receive -a :4242 --sink fpsdisplaysink --fps-dump ${output_dir}/${run_id}_receiver.fps.csv --rtp-dump ${output_dir}/${run_id}_receiver.rtp.csv --save ${output_dir}/${run_id}_receiver.avi --transport tcp &)
+    if [[ "$save_video" == true ]]; then
+        (cd ${ROQ_DIR} && ip netns exec osnd-moon-sv ${ROQ_BIN} receive -a :4242 --sink fpsdisplaysink --fps-dump ${output_dir}/${run_id}_receiver.fps.csv --rtp-dump ${output_dir}/${run_id}_receiver.rtp.csv --save ${output_dir}/${run_id}_receiver.avi --transport tcp &)
+    else
+        (cd ${ROQ_DIR} && ip netns exec osnd-moon-sv ${ROQ_BIN} receive -a :4242 --sink fpsdisplaysink --fps-dump ${output_dir}/${run_id}_receiver.fps.csv --rtp-dump ${output_dir}/${run_id}_receiver.rtp.csv --save /dev/null --transport tcp &)
+    fi
 }
 
 
@@ -169,6 +174,7 @@ function _osnd_moon_gstreamer_server_start_roq_app() {
     local output_dir="$1"
     local run_id="$2"
     local route="$3"
+    local route="$4"
 
     log I "Running GStreamer server"
     tmux -L ${TMUX_SOCKET} new-session -s gst-sv -d "sudo ip netns exec osnd-moon-cl bash"
@@ -177,10 +183,18 @@ function _osnd_moon_gstreamer_server_start_roq_app() {
     sleep $TMUX_INIT_WAIT
     tmux -L ${TMUX_SOCKET} send-keys -t gst-sv "export GST_PLUGIN_PATH='$(pwd)/builddir/'" Enter
     sleep $TMUX_INIT_WAIT
-    if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
-        (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000)
+    if [[ "$save_video" == true ]]; then
+        if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
+            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000)
+        else
+            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000)
+        fi
     else
-        (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000)
+        if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
+            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save /dev/null --transport tcp --init-rate 25000000)
+        else
+            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save /dev/null --transport tcp --init-rate 25000000)
+        fi
     fi
     log I "Measurement complete"
 }
@@ -243,6 +257,7 @@ function osnd_moon_measure_rtp_metrics_with_roq() {
     local -n scenario_config_ref=$scenario_config_name
     local base_run_id="rtp"
     local name_ext=""
+    local save_video="${scenario_config_ref['save_video']}"
 
     if [[ "$pep" == true ]]; then
         base_run_id="${base_run_id}_pep"
@@ -258,7 +273,7 @@ function osnd_moon_measure_rtp_metrics_with_roq() {
         sleep $MEASURE_WAIT
 
         # GStreamer Client
-        _osnd_moon_gstreamer_client_start_roq_app "$output_dir" "$run_id"
+        _osnd_moon_gstreamer_client_start_roq_app "$output_dir" "$run_id" "$save_video"
         sleep $MEASURE_WAIT
 
         # Proxy
@@ -271,7 +286,7 @@ function osnd_moon_measure_rtp_metrics_with_roq() {
         _osnd_moon_capture_start "$output_dir" "$run_id" "$route"
 
         # GStreamer Server
-        _osnd_moon_gstreamer_server_start_roq_app "$output_dir" "$run_id" "$route"
+        _osnd_moon_gstreamer_server_start_roq_app "$output_dir" "$run_id" "$route" "$save_video"
         sleep $MEASURE_GRACE
 
         # Cleanup
