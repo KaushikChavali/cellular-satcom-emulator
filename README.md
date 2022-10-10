@@ -123,7 +123,7 @@ executed, each being measured 5 times.
 | `-l` | `<#,>`     | `QUIC-specific:` csl of two file paths for qlog file output: client, server | `server.qlog und client.qlog in output directory` | T |
 | `-L` | `<#,>`     | percentages of packets to be dropped | `0` | M |
 | `-N` | `#`        | Number of runs per goodput measurement in a scenario | `1` | M |
-| `-o` |            | save rtp-over-quic app video streams at end-hosts | | M |
+| `-o` |            | Enable rtp-over-quic (ROQ) video logging at end-hosts | | M |
 | `-O` | `<#,>`     | Comma separated list of orbits to measure (GEO,MEO,LEO) | `GEO` | E |
 | `-p` | `<#,>`     | `MPTCP-specific:` advanced path-manager control (default, fullmesh, ndiffports, binder, netlink) | `fullmesh` | T |
 | `-P` | `#`        | Number of seconds to prime a new environment with some pings | `5` | M |

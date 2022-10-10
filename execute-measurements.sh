@@ -298,7 +298,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:E:F:g:HI:M:N:l:L:N:O:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:E:F:g:HI:M:N:l:L:N:oO:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,--enable-video-logging,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -372,7 +372,7 @@ function _osnd_moon_read_scenario() {
 			config_ref['loss']="$2"
 			shift 2
 			;;
-		-o | --disable-video-logging)
+		-o | --enable-video-logging)
 			config_ref['save_video']="false"
 			shift 1
 			;;
@@ -713,7 +713,7 @@ Scenario configuration:
   -l <#,>    QUIC-specific: csl of two file paths for qlog file output: client, server (default: server.qlog und client.qlog in output directory) 
   -L <#,>    percentages of packets to be dropped (default: 0%)
   -N #       number of goodput measurements per config (default: 1)
-  -o		 save rtp-over-quic app video streams at end-hosts
+  -o		 enable rtp-over-quic (ROQ) video logging at end-hosts
   -O <#,>    csl of orbits to measure (GEO|MEO|LEO) (default: GEO)
   -p <#,>	 MPTCP-specific: advanced path-manager control (default, fullmesh, binder, netlink) (default: fullmesh) 
   -P #       seconds to prime a new environment with some pings (default: 5)
