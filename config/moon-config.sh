@@ -45,5 +45,5 @@ LOSS_UL=0.0006
 HO_PCM=2.5
 
 # Handovers per second: mean and variance
-HO_FREQ_MEAN=0
-HO_FREQ_VARIANCE=0
+HO_FREQ_MEAN=20.04
+HO_FREQ_VARIANCE=23.74
