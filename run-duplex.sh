@@ -11,6 +11,8 @@ function _osnd_moon_capture_start() {
     # Server
     tmux -L ${TMUX_SOCKET} new-session -s tcpdump-sv -d "sudo ip netns exec osnd-moon-sv bash"
     sleep $TMUX_INIT_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv "ethtool -K gw5 tx off sg off tso off" Enter
+    sleep $TMUX_INIT_WAIT
     tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv "tcpdump -i gw5 -s ${SNAP_LEN} -w ${output_dir}/${run_id}_dump_server_gw5.pcap" Enter
 
     # Client
@@ -18,22 +20,25 @@ function _osnd_moon_capture_start() {
         log D "Capturing dump at ue3 (LTE)"
         tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
         sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "ethtool -K ue3 tx off sg off tso off" Enter
+        sleep $TMUX_INIT_WAIT
         tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i ue3 -s ${SNAP_LEN} -w ${output_dir}/${run_id}_dump_client_ue3.pcap" Enter
     elif [[ "$route" == "SAT" ]]; then
         log D "Capturing dump at st3 (SATCOM)"
         tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
         sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "ethtool -K st3 tx off sg off tso off" Enter
+        sleep $TMUX_INIT_WAIT
         tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s ${SNAP_LEN} -w ${output_dir}/${run_id}_dump_client_st3.pcap" Enter
     else
-        log D "Capturing dump at ue3 (LTE)"
-        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl-lte -d "sudo ip netns exec osnd-moon-cl bash"
+        log D "Capturing dump at ue3 (LTE) and st3 (SATCOM)"
+        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-moon-cl bash"
         sleep $TMUX_INIT_WAIT
-        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-lte "tcpdump -i ue3 -s ${SNAP_LEN} -w ${output_dir}/${run_id}_dump_client_ue3.pcap" Enter
-
-        log D "Capturing dump at st3 (SATCOM)"
-        tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl-sat -d "sudo ip netns exec osnd-moon-cl bash"
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "ethtool -K ue3 tx off sg off tso off" Enter
         sleep $TMUX_INIT_WAIT
-        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl-sat "tcpdump -i st3 -s ${SNAP_LEN} -w ${output_dir}/${run_id}_dump_client_st3.pcap" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "ethtool -K st3 tx off sg off tso off" Enter
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i any -s ${SNAP_LEN} -w ${output_dir}/${run_id}_dump_client_ue3_st3.pcap" Enter
     fi
 }
 
@@ -62,12 +67,7 @@ function _osnd_moon_capture_stop() {
     _capture_stop "tcpdump-sv"
 
     # Client
-    if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
-        _capture_stop "tcpdump-cl"
-    else
-        _capture_stop "tcpdump-cl-lte"
-        _capture_stop "tcpdump-cl-sat"
-    fi
+    _capture_stop "tcpdump-cl"
 }
 
 
@@ -232,8 +232,7 @@ function _osnd_moon_process_capture() {
     elif [[ "$route" == "SAT" ]]; then
         _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_st3"
     else
-        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_ue3"
-        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_st3"
+        _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_ue3_st3"
     fi
 }
 
