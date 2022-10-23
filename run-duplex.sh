@@ -301,7 +301,7 @@ function osnd_moon_measure_tcp_duplex_metrics() {
             _osnd_pepsal_proxies_stop
         fi
 
-        _osnd_moon_iperf_server_stop "iperf" "osnd-moon-sv"
+        _osnd_moon_iperf_server_stop "iperf" "osnd-moon-cl"
         _osnd_moon_gstreamer_client_stop_roq_app
         _osnd_moon_gstreamer_server_stop_roq_app
 
