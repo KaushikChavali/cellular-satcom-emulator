@@ -38,8 +38,8 @@ CONCEALED_LOSS_DL=0.005
 CONCEALED_LOSS_UL=0.005
 
 # Rate of packet drops
-LOSS_DL=0.0006
-LOSS_UL=0.0006
+LOSS_DL=0.00006
+LOSS_UL=0.00006
 
 # The number of people/cell/minute, used for calculating the handover interruption time (HIT)
 HO_PCM=2.5
