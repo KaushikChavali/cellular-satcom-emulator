@@ -42,7 +42,6 @@ function _osnd_moon_capture_start() {
     fi
 }
 
-
 # _capture_stop(tmux_ns)
 function _capture_stop() {
     local tmux_ns="$1"
@@ -53,7 +52,6 @@ function _capture_stop() {
     sleep $CMD_SHUTDOWN_WAIT
     tmux -L ${TMUX_SOCKET} kill-session -t ${tmux_ns} >/dev/null 2>&1
 }
-
 
 # _osnd_moon_capture_stop()
 function _osnd_moon_capture_stop() {
@@ -69,7 +67,6 @@ function _osnd_moon_capture_stop() {
     # Client
     _capture_stop "tcpdump-cl"
 }
-
 
 # _osnd_pepsal_proxies_start(output_dir, run_id)
 function _osnd_pepsal_proxies_start() {
@@ -110,7 +107,6 @@ function _osnd_pepsal_proxies_start() {
         Enter
 }
 
-
 # _osnd_pepsal_proxies_stop()
 function _osnd_pepsal_proxies_stop() {
     log I "Stopping pepsal proxies"
@@ -134,7 +130,6 @@ function _osnd_pepsal_proxies_stop() {
     tmux -L ${TMUX_SOCKET} kill-session -t pepsal-st >/dev/null 2>&1
 }
 
-
 # _osnd_moon_gstreamer_client_start_roq_app(output_dir, run_id)
 function _osnd_moon_gstreamer_client_start_roq_app() {
     local output_dir="$1"
@@ -156,7 +151,6 @@ function _osnd_moon_gstreamer_client_start_roq_app() {
     fi
 }
 
-
 # _osnd_moon_gstreamer_client_stop_roq_app()
 function _osnd_moon_gstreamer_client_stop_roq_app() {
     log I "Stopping GStreamer client"
@@ -167,7 +161,6 @@ function _osnd_moon_gstreamer_client_stop_roq_app() {
     sudo ip netns exec osnd-moon-sv killall $(basename $ROQ_BIN) -q
     tmux -L ${TMUX_SOCKET} kill-session -t gst-cl >/dev/null 2>&1
 }
-
 
 # _osnd_moon_gstreamer_server_start_roq_app(output_dir, run_id)
 function _osnd_moon_gstreamer_server_start_roq_app() {
@@ -199,7 +192,6 @@ function _osnd_moon_gstreamer_server_start_roq_app() {
     log I "Measurement complete"
 }
 
-
 # _osnd_moon_gstreamer_server_stop_roq_app()
 function _osnd_moon_gstreamer_server_stop_roq_app() {
     log I "Stopping GStreamer server"
@@ -211,7 +203,6 @@ function _osnd_moon_gstreamer_server_stop_roq_app() {
     tmux -L ${TMUX_SOCKET} kill-session -t gst-sv >/dev/null 2>&1
 }
 
-
 # _osnd_moon_extract_pcap()
 function _osnd_moon_extract_pcap() {
     local output_dir="$1"
@@ -220,7 +211,6 @@ function _osnd_moon_extract_pcap() {
 
     xz -T0 ${output_dir}/${run_id}_${file}.pcap
 }
-
 
 # _osnd_moon_process_capture()
 function _osnd_moon_process_capture() {
@@ -242,7 +232,6 @@ function _osnd_moon_process_capture() {
         _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_ue3_st3"
     fi
 }
-
 
 # osnd_moon_measure_rtp_metrics_with_roq(scenario_config_name, output_dir, pep=false, route, run_cnt=4)
 # Run RTP measurements utilizing GStreamer framework on the emulation environment
@@ -304,7 +293,6 @@ function osnd_moon_measure_rtp_metrics_with_roq() {
         sleep $RUN_WAIT
     done
 }
-
 
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

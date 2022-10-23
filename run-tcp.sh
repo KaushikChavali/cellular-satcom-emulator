@@ -108,13 +108,13 @@ function _osnd_moon_iperf_measure() {
 
     log I "Running iperf client"
     if [[ "$route" == "SAT" ]]; then
-    	sudo timeout --foreground $timeout \
-        	ip netns exec osnd-moon-sv \
-        	${IPERF_BIN} -c ${CL_LAN_CLIENT_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > "${output_dir}/${run_id}_iperf_client.log" 2>&1
+        sudo timeout --foreground $timeout \
+            ip netns exec osnd-moon-sv \
+            ${IPERF_BIN} -c ${CL_LAN_CLIENT_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} >"${output_dir}/${run_id}_iperf_client.log" 2>&1
     else
-    	sudo timeout --foreground $timeout \
-        	ip netns exec osnd-moon-sv \
-        	${IPERF_BIN} -c ${CL_LAN_CLIENT_IP_MG%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > "${output_dir}/${run_id}_iperf_client.log" 2>&1
+        sudo timeout --foreground $timeout \
+            ip netns exec osnd-moon-sv \
+            ${IPERF_BIN} -c ${CL_LAN_CLIENT_IP_MG%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} >"${output_dir}/${run_id}_iperf_client.log" 2>&1
     fi
     status=$?
 
@@ -307,7 +307,7 @@ function osnd_moon_measure_tcp_goodput() {
 
         # Client
         _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
-	    sleep $MEASURE_TIME
+        sleep $MEASURE_TIME
         sleep $MEASURE_GRACE
 
         # Cleanup
@@ -400,4 +400,3 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
         osnd_moon_measure_tcp_goodput scenario_config "." 0 1
     fi
 fi
-

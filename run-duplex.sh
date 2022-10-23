@@ -42,7 +42,6 @@ function _osnd_moon_capture_start() {
     fi
 }
 
-
 # _capture_stop(tmux_ns)
 function _capture_stop() {
     local tmux_ns="$1"
@@ -53,7 +52,6 @@ function _capture_stop() {
     sleep $CMD_SHUTDOWN_WAIT
     tmux -L ${TMUX_SOCKET} kill-session -t ${tmux_ns} >/dev/null 2>&1
 }
-
 
 # _osnd_moon_capture_stop()
 function _osnd_moon_capture_stop() {
@@ -70,7 +68,6 @@ function _osnd_moon_capture_stop() {
     _capture_stop "tcpdump-cl"
 }
 
-
 # _osnd_moon_iperf_measure(output_dir, run_id, bandwidth, measure_secs, timeout, route)
 function _osnd_moon_iperf_measure() {
     local output_dir="$1"
@@ -83,22 +80,20 @@ function _osnd_moon_iperf_measure() {
     tmux -L ${TMUX_SOCKET} new-session -s iperf-cl -d "sudo ip netns exec osnd-moon-sv bash"
     sleep $TMUX_INIT_WAIT
     if [[ "$route" == "SAT" ]]; then
-	tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${CL_LAN_CLIENT_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_client.log\" 2>&1" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${CL_LAN_CLIENT_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_client.log\" 2>&1" Enter
     else
-	tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${CL_LAN_CLIENT_IP_MG%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_client.log\" 2>&1" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${CL_LAN_CLIENT_IP_MG%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_client.log\" 2>&1" Enter
     fi
 }
 
-
 # _moon_iperf_client_stop(host_name, tmux_ns)
 function _osnd_moon_iperf_client_stop() {
-        local host_name="$1"
-        local tmux_ns="$2"
+    local host_name="$1"
+    local tmux_ns="$2"
 
-        sudo ip netns exec $host_name killall $(basename $IPERF_BIN) -q
-        tmux -L ${TMUX_SOCKET} kill-session -t $tmux_ns >/dev/null 2>&1
+    sudo ip netns exec $host_name killall $(basename $IPERF_BIN) -q
+    tmux -L ${TMUX_SOCKET} kill-session -t $tmux_ns >/dev/null 2>&1
 }
-
 
 # _osnd_moon_gstreamer_client_start_roq_app(output_dir, run_id)
 function _osnd_moon_gstreamer_client_start_roq_app() {
@@ -121,7 +116,6 @@ function _osnd_moon_gstreamer_client_start_roq_app() {
     fi
 }
 
-
 # _osnd_moon_gstreamer_client_stop_roq_app()
 function _osnd_moon_gstreamer_client_stop_roq_app() {
     log I "Stopping GStreamer client"
@@ -132,7 +126,6 @@ function _osnd_moon_gstreamer_client_stop_roq_app() {
     sudo ip netns exec osnd-moon-sv killall $(basename $ROQ_BIN) -q
     tmux -L ${TMUX_SOCKET} kill-session -t gst-cl >/dev/null 2>&1
 }
-
 
 # _osnd_moon_gstreamer_server_start_roq_app(output_dir, run_id)
 function _osnd_moon_gstreamer_server_start_roq_app() {
@@ -164,7 +157,6 @@ function _osnd_moon_gstreamer_server_start_roq_app() {
     log I "Measurement complete"
 }
 
-
 # _osnd_moon_gstreamer_server_stop_roq_app()
 function _osnd_moon_gstreamer_server_stop_roq_app() {
     log I "Stopping GStreamer server"
@@ -175,7 +167,6 @@ function _osnd_moon_gstreamer_server_stop_roq_app() {
     sudo ip netns exec osnd-moon-cl killall $(basename $ROQ_BIN) -q
     tmux -L ${TMUX_SOCKET} kill-session -t gst-sv >/dev/null 2>&1
 }
-
 
 # _osnd_moon_iperf_server_start(output_dir, run_id)
 function _osnd_moon_iperf_server_start() {
@@ -189,21 +180,19 @@ function _osnd_moon_iperf_server_start() {
     tmux -L ${TMUX_SOCKET} send-keys -t iperf "${IPERF_BIN} -s -p 5201 -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_server.log\" 2>&1" Enter
 }
 
-
 # _moon_iperf_server_stop(tmux_ns, host_name)
 function _osnd_moon_iperf_server_stop() {
-        local tmux_ns="$1"
-        local host_name="$2"
+    local tmux_ns="$1"
+    local host_name="$2"
 
-        log I "Stopping iperf server"
-        tmux -L ${TMUX_SOCKET} send-keys -t $tmux_ns C-c
-        sleep $CMD_SHUTDOWN_WAIT
-        tmux -L ${TMUX_SOCKET} send-keys -t $tmux_ns C-d
-        sleep $CMD_SHUTDOWN_WAIT
-        sudo ip netns exec $host_name killall $(basename $IPERF_BIN) -q
-        tmux -L ${TMUX_SOCKET} kill-session -t $tmux_ns >/dev/null 2>&1
+    log I "Stopping iperf server"
+    tmux -L ${TMUX_SOCKET} send-keys -t $tmux_ns C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t $tmux_ns C-d
+    sleep $CMD_SHUTDOWN_WAIT
+    sudo ip netns exec $host_name killall $(basename $IPERF_BIN) -q
+    tmux -L ${TMUX_SOCKET} kill-session -t $tmux_ns >/dev/null 2>&1
 }
-
 
 # _osnd_moon_extract_pcap()
 function _osnd_moon_extract_pcap() {
@@ -213,7 +202,6 @@ function _osnd_moon_extract_pcap() {
 
     xz -T0 ${output_dir}/${run_id}_${file}.pcap
 }
-
 
 # _osnd_moon_process_capture()
 function _osnd_moon_process_capture() {
@@ -236,12 +224,10 @@ function _osnd_moon_process_capture() {
     fi
 }
 
-
 # osnd_moon_measure_tcp_duplex_metrics(scenario_config_name, output_dir, pep=false, route, run_cnt=12)
 # Run TCP duplex traffic on the emulation environment with TCP stream on the downlink (DL) emulating a
 # constant bitrate (CBR) control traffic, and a RTP over (MP)TCP stream on the uplink (UL) mimicing a
 # variable bitrate (VBR) telemetry and video traffic.
-
 function osnd_moon_measure_tcp_duplex_metrics() {
     local scenario_config_name=$1
     local output_dir="$2"
@@ -286,7 +272,7 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         # Dump packets
         _osnd_moon_capture_start "$output_dir" "$run_id" "$route"
 
-         # Start iPerf client        
+        # Start iPerf client
         _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
 
         # Start GStreamer server
@@ -314,7 +300,6 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         sleep $RUN_WAIT
     done
 }
-
 
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
