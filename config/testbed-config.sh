@@ -24,11 +24,11 @@ ROQ_BIN="$HOME/rtp-over-quic/roq"
 # GStreamer file src
 GST_FILESRC="${SCRIPT_DIR}/test_video.mp4"
 # GStreamer roq file src
-ROQ_FILESRC="$HOME/rtp-over-quic/train_30.mp4"
+ROQ_FILESRC="$HOME/rtp-over-quic/train_30_30min.mp4"
 # GStreamer plugin path
 GST_PLUGIN_PATH="$HOME/gst-timecode/builddir/"
 # GStreamer init bitrate
-GST_INIT_BITRATE=15000000
+GST_INIT_BITRATE=10000000
 # h2o binary
 H2O_BIN="/usr/local/bin/h2o"
 # python binary

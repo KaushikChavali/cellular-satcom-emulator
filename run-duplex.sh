@@ -219,6 +219,7 @@ function _osnd_moon_capture_mptcp_queue_occ_stop {
     sleep $CMD_SHUTDOWN_WAIT
     tmux -L ${TMUX_SOCKET} send-keys -t mptcp-ofo C-d
     sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t mptcp-ofo "sudo modprobe -r mptcp_queue_probe" Enter
 }
 
 # _osnd_moon_extract_pcap()
