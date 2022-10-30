@@ -42,6 +42,23 @@ function _osnd_moon_capture_start() {
     fi
 }
 
+# _osnd_moon_capture_mptcp_queue_occ(output_dir, run_id, route)
+function _osnd_moon_capture_mptcp_queue_occ() {
+    local output_dir="$1"
+    local run_id="$2"
+    local route="$3"
+
+    log I "Starting MPTCP Queue Instrumentation"
+
+    if [[ "$route" == "MP" ]]; then
+        tmux -L ${TMUX_SOCKET} new-session -s mptcp-ofo -d "sudo bash"
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t mptcp-ofo "sudo modprobe mptcp_queue_probe" Enter
+        sleep $TMUX_INIT_WAIT
+        tmux -L ${TMUX_SOCKET} send-keys -t mptcp-ofo "sudo cat /proc/net/mptcp_queue_probe > ${output_dir}/${run_id}_dump_mptcp_queue_occ.log" Enter
+    fi
+}
+
 # _capture_stop(tmux_ns)
 function _capture_stop() {
     local tmux_ns="$1"
@@ -143,15 +160,15 @@ function _osnd_moon_gstreamer_server_start_roq_app() {
     sleep $TMUX_INIT_WAIT
     if [[ "$save_video" == true ]]; then
         if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
-            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000)
+            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 15000000)
         else
-            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 25000000)
+            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save ${output_dir}/${run_id}_sender.avi --transport tcp --init-rate 15000000)
         fi
     else
         if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
-            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save /dev/null --transport tcp --init-rate 25000000)
+            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save /dev/null --transport tcp --init-rate 15000000)
         else
-            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save /dev/null --transport tcp --init-rate 25000000)
+            (cd ${ROQ_DIR} && timeout ${MEASURE_TIME} ip netns exec osnd-moon-cl ${ROQ_BIN} send -a ${SV_LAN_SERVER_IP_MP%%/*}:4242 --source ${ROQ_FILESRC} --codec h264 --rtp-dump ${output_dir}/${run_id}_sender.rtp.csv --cc-dump ${output_dir}/${run_id}_sender.cc.csv --save /dev/null --transport tcp --init-rate 15000000)
         fi
     fi
     log I "Measurement complete"
@@ -192,6 +209,16 @@ function _osnd_moon_iperf_server_stop() {
     sleep $CMD_SHUTDOWN_WAIT
     sudo ip netns exec $host_name killall $(basename $IPERF_BIN) -q
     tmux -L ${TMUX_SOCKET} kill-session -t $tmux_ns >/dev/null 2>&1
+}
+
+# _osnd_moon_capture_mptcp_queue_occ_stop()
+function _osnd_moon_capture_mptcp_queue_occ_stop {
+    log I "Stopping MPTCP Queue Instrumentation"
+
+    tmux -L ${TMUX_SOCKET} send-keys -t mptcp-ofo C-c
+    sleep $CMD_SHUTDOWN_WAIT
+    tmux -L ${TMUX_SOCKET} send-keys -t mptcp-ofo C-d
+    sleep $CMD_SHUTDOWN_WAIT
 }
 
 # _osnd_moon_extract_pcap()
@@ -272,6 +299,9 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         # Dump packets
         _osnd_moon_capture_start "$output_dir" "$run_id" "$route"
 
+        # Start logging MPTCP OFO and RCV queue occupancies
+        _osnd_moon_capture_mptcp_queue_occ "$output_dir" "$run_id" "$route"
+
         # Start iPerf client
         _osnd_moon_iperf_measure "$output_dir" "$run_id" "$bw_dl" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
 
@@ -292,6 +322,7 @@ function osnd_moon_measure_tcp_duplex_metrics() {
         _osnd_moon_gstreamer_server_stop_roq_app
 
         _osnd_moon_capture_stop "$output_dir" "$run_id" "$route"
+        _osnd_moon_capture_mptcp_queue_occ_stop 
         osnd_moon_teardown
 
         # Do post-processing of PCAPs
