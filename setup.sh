@@ -202,9 +202,9 @@ function osnd_moon_setup() {
 	local delay_cl_sat="${scenario_config_ref['delay_cl_sat']:-0}"
 	local delay_cl_lte="${scenario_config_ref['delay_cl_lte']:-0}"
 	local delay_sv="${scenario_config_ref['delay_sv']:-0}"
-	local delay_gw="${scenario_config_ref['delay_gw']:-0}"
-	local delay_st="${scenario_config_ref['delay_st']:-0}"
-	local packet_loss="${scenario_config_ref['loss']:-0}"
+	local delay_gw="${scenario_config_ref['delay_gw']:-9}"
+	local delay_st="${scenario_config_ref['delay_st']:-10}"
+	local packet_loss="${scenario_config_ref['loss']:-0.166}"
 
 	local iw_sv="${scenario_config['iw_sv']}"
 	local iw_gw="${scenario_config['iw_gw']}"

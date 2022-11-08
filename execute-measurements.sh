@@ -43,6 +43,7 @@ source "${SCRIPT_DIR}/run-tcp.sh"
 source "${SCRIPT_DIR}/run-http.sh"
 source "${SCRIPT_DIR}/run-rtp.sh"
 source "${SCRIPT_DIR}/run-duplex.sh"
+source "${SCRIPT_DIR}/run-iperf-duplex.sh"
 declare -A pids
 
 # log(level, message...)
@@ -245,6 +246,9 @@ function _osnd_moon_generate_scenarios() {
 	if [[ "$exec_duplex" != "true" ]]; then
 		common_options="$common_options -d"
 	fi
+	if [[ "$exec_iperf_duplex" != "true" ]]; then
+		common_options="$common_options -i"
+	fi
 	if [[ "$save_video" != "false" ]]; then
 		common_options="$common_options -o"
 	fi
@@ -298,7 +302,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:E:F:g:HI:M:N:l:L:N:oO:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,delay:,ack-frequency:,ground-delays:,disable-http,initial-window:,modulation:,runs:,qlog-file:,loss:,--enable-video-logging,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:E:F:g:HiI:M:N:l:L:N:oO:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,delay:,ack-frequency:,ground-delays:,disable-http,disable-iperf-duplex,initial-window:,modulation:,runs:,qlog-file:,loss:,--enable-video-logging,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -350,6 +354,10 @@ function _osnd_moon_read_scenario() {
 			;;
 		-H | --disable-http)
 			config_ref['exec_http']="false"
+			shift 1
+			;;
+		-i | --disable-iperf-duplex)
+			config_ref['exec_iperf_duplex']="false"
 			shift 1
 			;;
 		-I | --initial-window)
@@ -541,6 +549,15 @@ function _osnd_moon_exec_scenario_with_config() {
 			osnd_moon_measure_tcp_duplex_metrics "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
 		fi
 	fi
+
+	if [[ "${config_ref['exec_iperf_duplex']:-true}" == true ]]; then
+		if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
+			osnd_moon_measure_iperf_tcp_duplex_metrics "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt
+		fi
+		if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
+			osnd_moon_measure_iperf_tcp_duplex_metrics "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
+		fi
+	fi
 }
 
 #_osnd_moon_get_cc(ccs, index)
@@ -582,6 +599,7 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['exec_http']="true"
 		scenario_config['exec_rtp']="true"
 		scenario_config['exec_duplex']="true"
+		scenario_config['exec_iperf_duplex']="true"
 
 		scenario_config['save_video']="false"
 
@@ -709,6 +727,7 @@ Scenario configuration:
   -g <#,>	 csl of ground delays at the client and the server [CL_SAT,CL_LTE,SV] (default: 0,0,0)
   -H         disable http measurements
   -F <#,>*   QUIC-specific: csl of three values: max. ACK Delay, packet no. after which first ack frequency packet is sent, fraction of CWND to be used in ACK frequency frame (default: 25, 1000, 8)
+  -i		 disable iperf duplex measurements
   -I <#,>*   csl of four initial window sizes for SGTC (default: 10)
   -l <#,>    QUIC-specific: csl of two file paths for qlog file output: client, server (default: server.qlog und client.qlog in output directory) 
   -L <#,>    percentages of packets to be dropped (default: 0%)
@@ -755,6 +774,7 @@ function _osnd_moon_parse_args() {
 	exec_http=true
 	exec_rtp=true
 	exec_duplex=true
+	exec_iperf_duplex=true
 	save_video=false
 	scenario_file=""
 	dump_packets=0
@@ -769,7 +789,7 @@ function _osnd_moon_parse_args() {
 	local -a new_iperf_bw=()
 	local -a new_ground_delays=()
 	local measure_cli_args="false"
-	while getopts "b:c:df:g:hl:op:r:st:vA:B:C:D:E:F:HI:L:N:O:P:Q:RS:T:U:VWXYZ" opt; do
+	while getopts "b:c:df:g:hl:op:r:st:vA:B:C:D:E:F:HiI:L:N:O:P:Q:RS:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -818,6 +838,9 @@ function _osnd_moon_parse_args() {
 		h)
 			_osnd_moon_print_usage "$0"
 			exit 0
+			;;
+		i)
+			exec_iperf_duplex=false
 			;;
 		l)
 			IFS=',' read -ra qlog_files <<<"$OPTARG"
