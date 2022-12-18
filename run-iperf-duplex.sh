@@ -94,12 +94,12 @@ function _osnd_moon_iperf_measure_dl() {
     local timeout="$5"
 
     log I "Running iperf client on DL"
-    tmux -L ${TMUX_SOCKET} new-session -s iperf-cl -d "sudo ip netns exec osnd-moon-sv bash"
+    tmux -L ${TMUX_SOCKET} new-session -s iperf-cl-dl -d "sudo ip netns exec osnd-moon-sv bash"
     sleep $TMUX_INIT_WAIT
     if [[ "$route" == "SAT" ]]; then
-        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${CL_LAN_CLIENT_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_dl_client.log\" 2>&1" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-dl "${IPERF_BIN} -c ${CL_LAN_CLIENT_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_dl_client.log\" 2>&1" Enter
     else
-        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl "${IPERF_BIN} -c ${CL_LAN_CLIENT_IP_MG%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_dl_client.log\" 2>&1" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-dl "${IPERF_BIN} -c ${CL_LAN_CLIENT_IP_MG%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_dl_client.log\" 2>&1" Enter
     fi
 }
 
@@ -112,12 +112,12 @@ function _osnd_moon_iperf_measure_ul() {
     local timeout="$5"
 
     log I "Running iperf client on UL"
-    tmux -L ${TMUX_SOCKET} new-session -s iperf-sv -d "sudo ip netns exec osnd-moon-cl bash"
+    tmux -L ${TMUX_SOCKET} new-session -s iperf-cl-ul -d "sudo ip netns exec osnd-moon-cl bash"
     sleep $TMUX_INIT_WAIT
     if [[ "$route" == "SAT" ]]; then
-        tmux -L ${TMUX_SOCKET} send-keys -t iperf-sv "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 4242 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_ul_client.log\" 2>&1" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-ul "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 4242 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_ul_client.log\" 2>&1" Enter
     else
-        tmux -L ${TMUX_SOCKET} send-keys -t iperf-sv "${IPERF_BIN} -c ${SV_LAN_SERVER_IP_MP%%/*} -p 4242 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_ul_client.log\" 2>&1" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-ul "${IPERF_BIN} -c ${SV_LAN_SERVER_IP_MP%%/*} -p 4242 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} > \"${output_dir}/${run_id}_iperf_ul_client.log\" 2>&1" Enter
     fi
 }
 
@@ -221,7 +221,7 @@ function osnd_moon_measure_iperf_tcp_duplex_metrics() {
     local run_cnt=${5:-4}
 
     local -n scenario_config_ref=$scenario_config_name
-    local base_run_id="tcp_duplex"
+    local base_run_id="tcp_iperf_duplex"
     local name_ext=""
     local bw_ul="${scenario_config_ref['bw_ul']}"
     local bw_dl="${scenario_config_ref['bw_dl']}"
@@ -264,7 +264,8 @@ function osnd_moon_measure_iperf_tcp_duplex_metrics() {
         sleep $MEASURE_TIME
         sleep $MEASURE_GRACE
 
-        _osnd_moon_iperf_client_stop "osnd-moon-cl" "client-dl"
+        _osnd_moon_iperf_client_stop "osnd-moon-cl" "iperf-cl-ul"
+        _osnd_moon_iperf_client_stop "osnd-moon-sv" "iperf-cl-dl"
 
         # Cleanup
         if [[ "$pep" == true ]]; then
