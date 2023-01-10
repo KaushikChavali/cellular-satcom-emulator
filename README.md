@@ -109,29 +109,31 @@ executed, each being measured 5 times.
 | Name | Argument   | Description | Default | Type |
 | ---- | ---------- | --- | --- | --- |
 | `-A` | `<#,>`     | Comma separated list of attenuation values to measure | `0` | E |
-| `-b` | `<#,>`     | Generated iPerf bandwith vis-à-vis the defined QoS requirements (UL,DL) | `20M,5M` | T |
+| `-b` | `<#,>`     | Generated iPerf bandwith vis-à-vis the defined QoS requirements \[UL,DL\] | `20M,5M` | T |
 | `-B` | `<GT,>*`   | `QUIC-specific:` Comma separated list of two qperf transfer buffer sizes for gateway and terminal. Repeat parameter for multiple configurations | `1M,1M` | T |
-| `-c` | `<#,>`     | `MPTCP-specific:` congestion control; Uncoupled (cubic, reno), Coupled (lia, olia, wVegas, balia);  Overrides single-path CC at end hosts (-C) option | `lia` | T |
-| `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. (c = cubic, r = reno) | `rrrr` | T |
+| `-c` | `<#,>`     | `MPTCP-specific:` congestion control, uncoupled \[cubic\|reno\], coupled \[lia\|olia\|wVegas\|balia\]; <br/> `MPDCCP-specific:` congestion control ID (CCID) \[2\|5\];<br/> Overrides single-path CC at end hosts (-C) option | `lia`<br/>`2` | T |
+| `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. \[c = cubic, r = reno\] | `rrrr` | T |
 | `-d` |            | Disable duplex measurements | | M |
 | `-D` | `#`        | dump the first # packets of a measurement | | M |
 | `-E` | `<GT,>`    | csl of two delay values: each one value or multiple seconds-delay values | `125` | M |
 | `-F` | `<#,>*`    | `QUIC-specific:` csl of three values: max. ACK Delay, packet no. after which first ack frequency packet is sent, fraction of CWND to be used in ACK frequency frame | `25, 1000, 8` | T |
-| `-g` | `<#,>`     | csl of ground delays at the client and the server (CL_SAT,CL_LTE,SV) | `0,0,0` | M |
+| `-g` | `<#,>`     | csl of ground delays at the client and the server \[CL_SAT,CL_LTE,SV\] | `0,0,0` | M |
 | `-H` |            | Disable HTTP measurements | | M | 
 | `-i` |            | Disable iperf duplex measurements | | M |
+| `-j` |            | Disable dccp duplex measurements | | M |
 | `-I` | `<#,>*`    | csl of four initial window sizes for SGTC | `10` | T |
 | `-l` | `<#,>`     | `QUIC-specific:` csl of two file paths for qlog file output: client, server | `server.qlog und client.qlog in output directory` | T |
 | `-L` | `<#,>`     | percentages of packets to be dropped | `0` | M |
+| `-m` | `<#,>`     | Multipath protcol \[MPTCP\|MPDCCP\] | `MPTCP` | M |
 | `-N` | `#`        | Number of runs per goodput measurement in a scenario | `1` | M |
 | `-o` |            | Enable rtp-over-quic (ROQ) video logging at end-hosts | | M |
-| `-O` | `<#,>`     | Comma separated list of orbits to measure (GEO,MEO,LEO) | `GEO` | E |
-| `-p` | `<#,>`     | `MPTCP-specific:` advanced path-manager control (default, fullmesh, ndiffports, binder, netlink) | `fullmesh` | T |
+| `-O` | `<#,>`     | Comma separated list of orbits to measure \[GEO\|MEO\|LEO\] | `GEO` | E |
+| `-p` | `<#,>`     | `MPTCP-specific:` advanced path-manager control \[default\|fullmesh\|ndiffports\|binder\|netlink\];<br/> `MPDCCP-specific:` path-manager \[default\] | `fullmesh`<br/>`default` | T |
 | `-P` | `#`        | Number of seconds to prime a new environment with some pings | `5` | M |
 | `-Q` | `<SGTC,>*` | `QUIC-specific:` Comma separated list of four qperf quicly buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` | T |
-| `-r` | `<#,>`     | `Joint Emulator-specific:` Select a routing strategy (LTE,SAT,MP) | `LTE`| J |
+| `-r` | `<#,>`     | `Joint Emulator-specific:` Select a routing strategy \[LTE\|SAT\|MP\] | `LTE`| J |
 | `-R` |            | Disable rtp measurements | | M |
-| `-S` | `<#,>`     | `MPTCP-specific:` scheduler (default, roundrobin, redundant, blest) | `default` | T |
+| `-S` | `<#,>`     | `MPTCP-specific:` scheduler \[default\|roundrobin\|redundant\|blest\];<br/> `MPDCCP-specific:` scheduler \[default\|srtt\|rr\|redundant\|otias\|cpf\|handover\] | `default`<br/>`srtt` | T |
 | `-T` | `#`        | Number of runs per timing measurement in a scenario | `4` | M |
 | `-U` | `<SGTC,>*` | `QUIC-specific:` Comma separated list of four qperf udp buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` | T |
 | `-V` |            | Disable plain (non pep) measurements | | M |

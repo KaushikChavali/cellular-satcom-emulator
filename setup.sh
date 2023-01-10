@@ -3,6 +3,7 @@
 # _add_mptcp_modules
 function _add_mptcp_modules() {
 	# Load MPTCP modules
+	# Congestion controls
 	sudo modprobe mptcp_olia
 	sudo modprobe mptcp_coupled
 	sudo modprobe mptcp_balia
@@ -18,11 +19,29 @@ function _add_mptcp_modules() {
 	sudo modprobe mptcp_binder
 }
 
+# _add_mpdccp_modules
+function _add_mpdccp_modules() {
+	# Load MPDCCP modules
+	sudo modprobe mpdccp
+	sudo modprobe mpdccp_reorder_fixed
+
+	# Schedulers
+	sudo modprobe mpdccp_sched_srtt
+	sudo modprobe mpdccp_sched_otias
+	sudo modprobe mpdccp_sched_rr
+	sudo modprobe mpdccp_sched_redundant
+	sudo modprobe mpdccp_sched_handover
+	sudo modprobe mpdccp_sched_cpf
+}
+
 # _configure_mptcp_options(mptcp_cc, mptcp_pm, mptcp_sched)
 function _configure_mptcp_options() {
 	local mptcp_cc="$1"
 	local mptcp_pm="$2"
 	local mptcp_sched="$3"
+
+	# Enable MPTCP on the machine
+    sudo sysctl -wq net.mptcp.mptcp_enabled=1
 
 	# Configure the path-manager;
 	# default, fullmesh, ndiffports, binder, netlink
@@ -38,6 +57,82 @@ function _configure_mptcp_options() {
 	sudo ip netns exec osnd-moon-sv sysctl -wq net.ipv4.tcp_congestion_control="$mptcp_cc"
 }
 
+# _configure_mpdccp_options(mpdccp_cc, mpdccp_pm, mpdccp_sched)
+function _configure_mpdccp_options() {
+	local mpdccp_cc="$1"
+	local mpdccp_pm="$2"
+	local mpdccp_sched="$3"
+
+	# Configure the path-manager;
+	# default
+	sudo sysctl -wq net.mpdccp.mpdccp_path_manager="$mpdccp_pm"
+
+	# Configure the scheduler;
+	# default, srtt, rr, redundant, otias, cpf, handover
+	sudo sysctl -wq net.mpdccp.mpdccp_scheduler="$mpdccp_sched"
+
+	# Configure the congestion control algorithm;
+	# ccid2, ccid5
+	if [[ "$mpdccp_cc" == "2" ]]; then
+		# CCID2 configuration
+		sudo sysctl -wq net.dccp.default.tx_ccid=2
+		sudo sysctl -wq net.dccp.default.rx_ccid=2
+
+		sudo sysctl -wq net.dccp.default.tx_qlen=20000
+
+		# Default and maximum amount for the receive socket memory
+		sudo sysctl -wq net.core.rmem_max=20000000
+		sudo sysctl -wq net.core.rmem_default=20000000
+
+		# Default and maximum amount for the send socket memory
+		# Having a larger value avoids the cycle sleep/wakeup/send
+		# on a waitqueue in the dccp_sendmsg() function, wich might
+		# not be very efficient at high throughput
+		sudo sysctl -wq net.core.wmem_max=20000000
+		sudo sysctl -wq net.core.wmem_default=20000000
+		sudo sysctl -wq net.core.netdev_max_backlog=1000000
+	elif [[ "$mpdccp_cc" == "5" ]]; then
+		# CCID5 configuration
+		sudo sysctl -wq net.dccp.default.tx_ccid=5
+		sudo sysctl -wq net.dccp.default.rx_ccid=5
+
+		# Enable fq disc
+		sudo echo 'net.core.default_qdisc=fq' | sudo tee -a /etc/sysctl.conf
+		sudo sysctl -p
+
+		# Set fq flow limits
+		sudo ip netns exec osnd-moon-cl tc qdisc replace dev ue3 root fq flow_limit 2000
+		sudo ip netns exec osnd-moon-cl tc qdisc replace dev st3 root fq flow_limit 2000
+		sudo ip netns exec osnd-moon-sv tc qdisc replace dev gw5 root fq flow_limit 2000
+
+		sudo sysctl -wq net.dccp.default.tx_qlen=1000
+
+		sudo sysctl -wq net.core.rmem_max=20000000
+		sudo sysctl -wq net.core.rmem_default=2000000
+
+		sudo sysctl -wq net.core.wmem_max=20000000
+		sudo sysctl -wq net.core.wmem_default=2000000
+		sudo sysctl -wq net.core.netdev_max_backlog=1000000
+	fi
+
+	# Enable MP-DCCP on the host interfaces
+	# Client
+	sudo tmux new-session -s config-mpdccp-cl -d "sudo ip netns exec osnd-moon-cl bash"
+	tmp=`sudo ip netns exec osnd-moon-cl printf "0x%x\n" $((($(sudo ip netns exec osnd-moon-cl cat "/sys/class/net/st3/flags"))|0x200000))`
+	sudo tmux send-keys -t config-mpdccp-cl "echo $tmp > "/sys/class/net/st3/flags"" Enter
+	tmp=`sudo ip netns exec osnd-moon-cl printf "0x%x\n" $((($(sudo ip netns exec osnd-moon-cl cat "/sys/class/net/ue3/flags"))|0x200000))`
+	sudo tmux send-keys -t config-mpdccp-cl "echo $tmp > "/sys/class/net/ue3/flags"" Enter
+	tmp=
+	sudo tmux kill-session -t config-mpdccp-cl
+
+	# Server
+	sudo tmux new-session -s config-mpdccp-sv -d "sudo ip netns exec osnd-moon-sv bash"
+	tmp=`sudo ip netns exec osnd-moon-sv printf "0x%x\n" $((($(sudo ip netns exec osnd-moon-sv cat "/sys/class/net/gw5/flags"))|0x200000))`
+	sudo tmux send-keys -t config-mpdccp-sv "echo $tmp > "/sys/class/net/gw5/flags"" Enter
+	tmp=
+	sudo tmux kill-session -t config-mpdccp-sv
+}
+
 # _config_mptcp_options(route, mptcp_cc, mptcp_pm, mptcp_sched)
 function _set_mptcp_options() {
 	local route="$1"
@@ -51,6 +146,22 @@ function _set_mptcp_options() {
 
 		# Configure MPTCP scenario options
 		_configure_mptcp_options "$mptcp_cc" "$mptcp_pm" "$mptcp_sched"
+	fi
+}
+
+# _config_mpdccp_options(route, mpdccp_cc, mpdccp_pm, mpdccp_sched)
+function _set_mpdccp_options() {
+	local route="$1"
+	local mpdccp_cc="$2"
+	local mpdccp_pm="$3"
+	local mpdccp_sched="$4"
+
+	if [[ "$route" == "MP" ]]; then
+		# Add MPDCCP modules to the Linux kernel
+		_add_mpdccp_modules
+
+		# Configure MPTCP scenario options
+		_configure_mpdccp_options "$mpdccp_cc" "$mpdccp_pm" "$mpdccp_sched"
 	fi
 }
 
@@ -214,6 +325,7 @@ function osnd_moon_setup() {
 	local mp_cc="${scenario_config_ref['mp_cc']:-lia}"
 	local mp_pm="${scenario_config_ref['mp_pm']:-fullmesh}"
 	local mp_sched="${scenario_config_ref['mp_sched']:-default}"
+	local mp_prot="${scenario_config_ref['mp_prot']:-MPTCP}"
 
 	log I "Setting up emulation environment"
 
@@ -231,15 +343,22 @@ function osnd_moon_setup() {
 	sleep 1
 	osnd_moon_setup_ground_delay "$delay_ground" "$delay_cl_sat" "$delay_cl_lte" "$delay_sv"
 	sleep 1
-	_osnd_moon_configure_cc "$cc_cl" "$cc_st" "$cc_emu" "$cc_gw" "$cc_sv"
-	sleep 1
-	_set_mptcp_options "$route" "$mp_cc" "$mp_pm" "$mp_sched"
-	sleep 1
+	if [[ "$mp_prot" == "MPTCP" ]]; then
+		_osnd_moon_configure_cc "$cc_cl" "$cc_st" "$cc_emu" "$cc_gw" "$cc_sv"
+		sleep 1
+		_set_mptcp_options "$route" "$mp_cc" "$mp_pm" "$mp_sched"
+		sleep 1
+	elif [[ "$mp_prot" == "MPDCCP" ]]; then
+		_set_mpdccp_options "$route" "$mp_cc" "$mp_pm" "$mp_sched"
+	fi
+
 	osnd_setup_opensand "$delay_gw" "$delay_st" "$attenuation" "$modulation_id"
 	sleep 1
 	moon_setup_moongen "$output_dir" "$run_id"
 	sleep 10
-	_osnd_moon_log_config
+	if [[ "$mp_prot" == "MPTCP" ]]; then
+		_osnd_moon_log_config
+	fi
 
 	if (($(echo "$prime > 0" | bc -l))); then
 		_osnd_moon_prime_env $prime

@@ -69,9 +69,6 @@ function osnd_moon_config_routes() {
 
         log D "Configuring multi-path routes via LTE and SATCOM links"
 
-        # Enable MPTCP on the machine
-        sudo sysctl -wq net.mptcp.mptcp_enabled=1
-
         # Two different routing tables based on the source-address
         # table 1: LTE (ue3),  table 2: SATCOM (st3)
         sudo ip netns exec osnd-moon-cl ip rule add from ${CL_LAN_CLIENT_IP_MG%%/*} table 1

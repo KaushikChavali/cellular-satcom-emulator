@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="2.4"
+export SCRIPT_VERSION="3.0"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
@@ -249,6 +249,9 @@ function _osnd_moon_generate_scenarios() {
 	if [[ "$exec_iperf_duplex" != "true" ]]; then
 		common_options="$common_options -i"
 	fi
+	if [[ "$exec_dccp_duplex" != "true" ]]; then
+		common_options="$common_options -j"
+	fi
 	if [[ "$save_video" != "false" ]]; then
 		common_options="$common_options -o"
 	fi
@@ -272,8 +275,10 @@ function _osnd_moon_generate_scenarios() {
 														for mp_ccs in "${mptcp_cc_algorithms[@]}"; do
 															for mp_pm in "${mptcp_path_managers[@]}"; do
 																for mp_sched in "${mptcp_schedulers[@]}"; do
-																	local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route} -g ${gds} -c ${mp_ccs} -p ${mp_pm} -S ${mp_sched}"
-																	echo "$common_options $scenario_options" >>"$scenario_file"
+																	for mp_prot in "${mp_protocols[@]}"; do
+																		local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route} -g ${gds} -c ${mp_ccs} -p ${mp_pm} -S ${mp_sched} -m ${mp_prot}"
+																		echo "$common_options $scenario_options" >>"$scenario_file"
+																	done
 																done
 															done
 														done
@@ -302,7 +307,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:E:F:g:HiI:M:N:l:L:N:oO:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,delay:,ack-frequency:,ground-delays:,disable-http,disable-iperf-duplex,initial-window:,modulation:,runs:,qlog-file:,loss:,--enable-video-logging,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler,timing-runs:,udp-buffers:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:E:F:g:HiI:jl:L:m:M:N:oO:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,delay:,ack-frequency:,ground-delays:,disable-http,disable-iperf-duplex,initial-window:,disable-dccp-duplex,qlog-file:,loss:,multipath-protocol:,modulation:,runs:,--enable-video-logging,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler:,timing-runs:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -362,6 +367,14 @@ function _osnd_moon_read_scenario() {
 			;;
 		-I | --initial-window)
 			config_ref['iw']="$2"
+			shift 2
+			;;
+		-j | --disable-dccp-duplex)
+			config_ref['exec_dccp_duplex']="false"
+			shift 1
+			;;
+		-m | --multipath-protocol)
+			config_ref['mp_prot']="$2"
 			shift 2
 			;;
 		-M | --modulation)
@@ -558,6 +571,10 @@ function _osnd_moon_exec_scenario_with_config() {
 			osnd_moon_measure_iperf_tcp_duplex_metrics "$config_name" "$measure_output_dir" true "$sel_route" $run_cnt
 		fi
 	fi
+
+	if [[ "${config_ref['exec_dccp_duplex']:-true}" == true ]]; then
+		osnd_moon_measure_iperf_dccp_duplex_metrics "$config_name" "$measure_output_dir" false "$sel_route" $run_cnt
+	fi
 }
 
 #_osnd_moon_get_cc(ccs, index)
@@ -600,6 +617,7 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['exec_rtp']="true"
 		scenario_config['exec_duplex']="true"
 		scenario_config['exec_iperf_duplex']="true"
+		scenario_config['exec_dccp_duplex']="true"
 
 		scenario_config['save_video']="false"
 
@@ -628,6 +646,7 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['mp_cc']="lia"
 		scenario_config['mp_pm']="fullmesh"
 		scenario_config['mp_sched']="default"
+		scenario_config['mp_prot']="MPTCP"
 
 		_osnd_moon_read_scenario scenario_config "$scenario"
 		local read_status=$?
@@ -719,7 +738,7 @@ Scenario configuration:
   -A <#,>    csl of attenuations to measure (default: 0db)
   -B <#,>*   QUIC-specific: csl of two qperf transfer buffer sizes for G and T (default: 1M)
   -b <#,>	 iPerf bandwith vis-à-vis the defined QoS requirements [UL/DL] (default: 20M,5M)
-  -c <#,>	 MPTCP-specific: congestion control; Uncoupled [reno, cubic], Coupled [lia, olia, balia, wVegas] (default: lia)
+  -c <#,>	 MPTCP-specific: congestion control - Uncoupled [reno|cubic], Coupled [lia|olia|balia|wVegas] (default: lia); MPDCCP-specific: congestion control ID (CCID) [2|5] (default: 2)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -d 		 disable duplex measurements
   -D #       dump the first # packets of a measurement
@@ -729,17 +748,19 @@ Scenario configuration:
   -F <#,>*   QUIC-specific: csl of three values: max. ACK Delay, packet no. after which first ack frequency packet is sent, fraction of CWND to be used in ACK frequency frame (default: 25, 1000, 8)
   -i		 disable iperf duplex measurements
   -I <#,>*   csl of four initial window sizes for SGTC (default: 10)
+  -j		 disable dccp duplex measurements
   -l <#,>    QUIC-specific: csl of two file paths for qlog file output: client, server (default: server.qlog und client.qlog in output directory) 
   -L <#,>    percentages of packets to be dropped (default: 0%)
+  -m <#,>	 Multipath protcol [MPTCP|MPDCCP] (default: MPTCP)
   -N #       number of goodput measurements per config (default: 1)
   -o		 enable rtp-over-quic (ROQ) video logging at end-hosts
-  -O <#,>    csl of orbits to measure (GEO|MEO|LEO) (default: GEO)
-  -p <#,>	 MPTCP-specific: advanced path-manager control (default, fullmesh, binder, netlink) (default: fullmesh) 
+  -O <#,>    csl of orbits to measure [GEO|MEO|LEO] (default: GEO)
+  -p <#,>	 MPTCP-specific: advanced path-manager control [default|fullmesh|binder|netlink] (default: fullmesh); MPDCCP-specific: path-manager [default] (default: default)
   -P #       seconds to prime a new environment with some pings (default: 5)
   -Q <#,>*   QUIC-specific: csl of four qperf quicly buffer sizes for SGTC (default: 1M)
   -R		 disable rtp measurements
-  -r <#,>	 Select a routing strategy (LTE|SAT|MP) (default: LTE)
-  -S <#,> 	 MPTCP-specific: scheduler (default, roundrobin, redundant, blest) (default: default)
+  -r <#,>	 Select a routing strategy [LTE|SAT|MP] (default: LTE)
+  -S <#,> 	 MPTCP-specific: scheduler [default|roundrobin|redundant|blest] (default: default); MPDCCP-specific: scheduler [default|srtt|rr|redundant|otias|cpf|handover] (default: srtt)
   -T #       number of timing measurements per config (default: 4)
   -U <#,>*   QUIC-specific: csl of four qperf udp buffer sizes for SGTC (default: 1M)
   -V         disable plain (non pep) measurements
@@ -775,6 +796,7 @@ function _osnd_moon_parse_args() {
 	exec_rtp=true
 	exec_duplex=true
 	exec_iperf_duplex=true
+	exec_dccp_duplex=true
 	save_video=false
 	scenario_file=""
 	dump_packets=0
@@ -789,7 +811,7 @@ function _osnd_moon_parse_args() {
 	local -a new_iperf_bw=()
 	local -a new_ground_delays=()
 	local measure_cli_args="false"
-	while getopts "b:c:df:g:hl:op:r:st:vA:B:C:D:E:F:HiI:L:N:O:P:Q:RS:T:U:VWXYZ" opt; do
+	while getopts "b:c:df:g:hl:op:r:st:vA:B:C:D:E:F:HiI:jL:m:N:O:P:Q:RS:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -842,6 +864,9 @@ function _osnd_moon_parse_args() {
 		i)
 			exec_iperf_duplex=false
 			;;
+		j)
+			exec_dccp_duplex=false
+			;;
 		l)
 			IFS=',' read -ra qlog_files <<<"$OPTARG"
 			if [[ "${#qlog_files[@]}" != 2 ]]; then
@@ -849,6 +874,9 @@ function _osnd_moon_parse_args() {
 				exit 1
 			fi
 			qlog_file=$OPTARG
+			;;
+		m)
+			IFS=',' read -ra mp_protocols <<<"$OPTARG"
 			;;
 		o)
 			save_video=true
@@ -1081,6 +1109,7 @@ function _main() {
 	declare -a mptcp_schedulers=("default")
 	declare -a mptcp_cc_algorithms=("lia")
 	declare -a mptcp_path_managers=("fullmesh")
+	declare -a mp_protocols=("MPTCP")
 
 	_osnd_moon_parse_args "$@"
 
