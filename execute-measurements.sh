@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="3.0"
+export SCRIPT_VERSION="3.0.1"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 export CONFIG_DIR="${SCRIPT_DIR}/config"
 export OSND_DIR="${SCRIPT_DIR}/quic-opensand-emulation"
@@ -44,6 +44,7 @@ source "${SCRIPT_DIR}/run-http.sh"
 source "${SCRIPT_DIR}/run-rtp.sh"
 source "${SCRIPT_DIR}/run-duplex.sh"
 source "${SCRIPT_DIR}/run-iperf-duplex.sh"
+source "${SCRIPT_DIR}/run-dccp-duplex.sh"
 declare -A pids
 
 # log(level, message...)
@@ -276,8 +277,10 @@ function _osnd_moon_generate_scenarios() {
 															for mp_pm in "${mptcp_path_managers[@]}"; do
 																for mp_sched in "${mptcp_schedulers[@]}"; do
 																	for mp_prot in "${mp_protocols[@]}"; do
-																		local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route} -g ${gds} -c ${mp_ccs} -p ${mp_pm} -S ${mp_sched} -m ${mp_prot}"
-																		echo "$common_options $scenario_options" >>"$scenario_file"
+																		for mp_re in "${mp_reordering_engine[@]}"; do
+																			local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs} -E ${delay} -L ${loss} -I ${iw} -F ${ack_freq} -l ${qlog_file} -b ${bw} -r ${route} -g ${gds} -c ${mp_ccs} -p ${mp_pm} -S ${mp_sched} -m ${mp_prot} -e ${mp_re}"
+																			echo "$common_options $scenario_options" >>"$scenario_file"
+																		done
 																	done
 																done
 															done
@@ -307,7 +310,7 @@ function _osnd_moon_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:E:F:g:HiI:jl:L:m:M:N:oO:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,delay:,ack-frequency:,ground-delays:,disable-http,disable-iperf-duplex,initial-window:,disable-dccp-duplex,qlog-file:,loss:,multipath-protocol:,modulation:,runs:,--enable-video-logging,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler:,timing-runs:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand-moongen scenario" -o "A:b:B:c:C:dD:e:E:F:g:HiI:jl:L:m:M:N:oO:p:P:Q:r:RS:T:U:VWXYZ" -l "attenuation:,iperf-bandwidth:,transport-buffers:,mptcp-congestion-control:,congestion-control:,disable-duplex,dump:,mpdccp-reordering-engine:,delay:,ack-frequency:,ground-delays:,disable-http,disable-iperf-duplex,initial-window:,disable-dccp-duplex,qlog-file:,loss:,multipath-protocol:,modulation:,runs:,--enable-video-logging,orbit:,mptcp-path-manager:,prime:,quicly-buffers:,routing-strategy:,disable-rtp,mptcp-scheduler:,timing-runs:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -343,6 +346,10 @@ function _osnd_moon_read_scenario() {
 			;;
 		-D | --dump)
 			config_ref['dump']="$2"
+			shift 2
+			;;
+		-e | --mpdccp-reordering-engine)
+			config_ref['mp_re']="$2"
 			shift 2
 			;;
 		-E | --delay)
@@ -647,6 +654,7 @@ function _osnd_moon_run_scenarios() {
 		scenario_config['mp_pm']="fullmesh"
 		scenario_config['mp_sched']="default"
 		scenario_config['mp_prot']="MPTCP"
+		scenario_config['mp_re']="default"
 
 		_osnd_moon_read_scenario scenario_config "$scenario"
 		local read_status=$?
@@ -742,6 +750,7 @@ Scenario configuration:
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -d 		 disable duplex measurements
   -D #       dump the first # packets of a measurement
+  -e <#,>	 MPDCCP-specific: reordering engine selection - [default|fixed]
   -E <GT,>   csl of two delay values: each one value or multiple seconds-delay values (default: 125)
   -g <#,>	 csl of ground delays at the client and the server [CL_SAT,CL_LTE,SV] (default: 0,0,0)
   -H         disable http measurements
@@ -811,7 +820,7 @@ function _osnd_moon_parse_args() {
 	local -a new_iperf_bw=()
 	local -a new_ground_delays=()
 	local measure_cli_args="false"
-	while getopts "b:c:df:g:hl:op:r:st:vA:B:C:D:E:F:HiI:jL:m:N:O:P:Q:RS:T:U:VWXYZ" opt; do
+	while getopts "b:c:df:g:hl:op:r:st:vA:B:C:D:e:E:F:HiI:jL:m:N:O:P:Q:RS:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -834,6 +843,9 @@ function _osnd_moon_parse_args() {
 			;;
 		d)
 			exec_duplex=false
+			;;
+		e)
+			IFS=',' read -ra mp_reordering_engine <<<"$OPTARG"
 			;;
 		f)
 			if [[ "$measure_cli_args" == "true" ]]; then
@@ -1110,6 +1122,7 @@ function _main() {
 	declare -a mptcp_cc_algorithms=("lia")
 	declare -a mptcp_path_managers=("fullmesh")
 	declare -a mp_protocols=("MPTCP")
+	declare -a mp_reordering_engine=("default")
 
 	_osnd_moon_parse_args "$@"
 

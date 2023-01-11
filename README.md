@@ -115,6 +115,7 @@ executed, each being measured 5 times.
 | `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. \[c = cubic, r = reno\] | `rrrr` | T |
 | `-d` |            | Disable duplex measurements | | M |
 | `-D` | `#`        | dump the first # packets of a measurement | | M |
+| `-e` | `<#,>`     | `MPDCCP-specific:` reordering engine \[default\|fixed\] | `default` | T |
 | `-E` | `<GT,>`    | csl of two delay values: each one value or multiple seconds-delay values | `125` | M |
 | `-F` | `<#,>*`    | `QUIC-specific:` csl of three values: max. ACK Delay, packet no. after which first ack frequency packet is sent, fraction of CWND to be used in ACK frequency frame | `25, 1000, 8` | T |
 | `-g` | `<#,>`     | csl of ground delays at the client and the server \[CL_SAT,CL_LTE,SV\] | `0,0,0` | M |

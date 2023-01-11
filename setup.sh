@@ -57,11 +57,12 @@ function _configure_mptcp_options() {
 	sudo ip netns exec osnd-moon-sv sysctl -wq net.ipv4.tcp_congestion_control="$mptcp_cc"
 }
 
-# _configure_mpdccp_options(mpdccp_cc, mpdccp_pm, mpdccp_sched)
+# _configure_mpdccp_options(mpdccp_cc, mpdccp_pm, mpdccp_sched, mpdccp_re)
 function _configure_mpdccp_options() {
 	local mpdccp_cc="$1"
 	local mpdccp_pm="$2"
 	local mpdccp_sched="$3"
+	local mpdccp_re="$4"
 
 	# Configure the path-manager;
 	# default
@@ -70,6 +71,10 @@ function _configure_mpdccp_options() {
 	# Configure the scheduler;
 	# default, srtt, rr, redundant, otias, cpf, handover
 	sudo sysctl -wq net.mpdccp.mpdccp_scheduler="$mpdccp_sched"
+
+	# Confingure reordering engine
+	# default, fixed
+	sudo sysctl -wq net.mpdccp.mpdccp_reordering="mpdccp_re"
 
 	# Configure the congestion control algorithm;
 	# ccid2, ccid5
@@ -155,13 +160,14 @@ function _set_mpdccp_options() {
 	local mpdccp_cc="$2"
 	local mpdccp_pm="$3"
 	local mpdccp_sched="$4"
+	local mpdccp_re="$5"
 
 	if [[ "$route" == "MP" ]]; then
 		# Add MPDCCP modules to the Linux kernel
 		_add_mpdccp_modules
 
 		# Configure MPTCP scenario options
-		_configure_mpdccp_options "$mpdccp_cc" "$mpdccp_pm" "$mpdccp_sched"
+		_configure_mpdccp_options "$mpdccp_cc" "$mpdccp_pm" "$mpdccp_sched" "$mpdccp_re"
 	fi
 }
 
@@ -326,6 +332,7 @@ function osnd_moon_setup() {
 	local mp_pm="${scenario_config_ref['mp_pm']:-fullmesh}"
 	local mp_sched="${scenario_config_ref['mp_sched']:-default}"
 	local mp_prot="${scenario_config_ref['mp_prot']:-MPTCP}"
+	local mp_re="${scenario_config_ref['mp_re']:-default}"
 
 	log I "Setting up emulation environment"
 
@@ -349,7 +356,7 @@ function osnd_moon_setup() {
 		_set_mptcp_options "$route" "$mp_cc" "$mp_pm" "$mp_sched"
 		sleep 1
 	elif [[ "$mp_prot" == "MPDCCP" ]]; then
-		_set_mpdccp_options "$route" "$mp_cc" "$mp_pm" "$mp_sched"
+		_set_mpdccp_options "$route" "$mp_cc" "$mp_pm" "$mp_sched" "$mp_re"
 	fi
 
 	osnd_setup_opensand "$delay_gw" "$delay_st" "$attenuation" "$modulation_id"
