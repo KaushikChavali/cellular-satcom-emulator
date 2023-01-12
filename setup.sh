@@ -74,7 +74,7 @@ function _configure_mpdccp_options() {
 
 	# Confingure reordering engine
 	# default, fixed
-	sudo sysctl -wq net.mpdccp.mpdccp_reordering="mpdccp_re"
+	sudo sysctl -wq net.mpdccp.mpdccp_reordering="$mpdccp_re"
 
 	# Configure the congestion control algorithm;
 	# ccid2, ccid5
@@ -165,14 +165,14 @@ function _set_mpdccp_options() {
 	if [[ "$route" == "MP" ]]; then
 		# Add MPDCCP modules to the Linux kernel
 		_add_mpdccp_modules
-
-		# Configure MPTCP scenario options
+		# Configure MPDCCP scenario options
 		_configure_mpdccp_options "$mpdccp_cc" "$mpdccp_pm" "$mpdccp_sched" "$mpdccp_re"
 	fi
 }
 
-# _osnd_moon_log_config()
-function _osnd_moon_log_config() {
+# _osnd_moon_log_mptcp_config()
+function _osnd_moon_log_mptcp_config() {
+	local mptcp_cc_cl=$(sudo ip netns exec osnd-moon-cl sysctl net.ipv4.tcp_congestion_control)
 	local mptcp_cc_sv=$(sudo ip netns exec osnd-moon-sv sysctl net.ipv4.tcp_congestion_control)
 	local mptcp_enabled_sv=$(sudo sysctl net.mptcp.mptcp_enabled)
 	local mptcp_sched_sv=$(sudo sysctl net.mptcp.mptcp_scheduler)
@@ -180,13 +180,30 @@ function _osnd_moon_log_config() {
 	local mptcp_pm_cl_verbose=$(sudo ip netns exec osnd-moon-cl cat /proc/net/mptcp_fullmesh)
 	local mptcp_pm_sv_verbose=$(sudo ip netns exec osnd-moon-sv cat /proc/net/mptcp_fullmesh)
 
-	log I "MPTCP Configuration at the server (sender)"
+	log I "MPTCP Configuration"
+	log D "$mptcp_cc_cl"
 	log D "$mptcp_cc_sv"
 	log D "$mptcp_enabled_sv"
 	log D "$mptcp_sched_sv"
 	log D "$mptcp_pm_sv"
 	log D "$mptcp_pm_cl_verbose"
 	log D "$mptcp_pm_sv_verbose"
+}
+
+# _osnd_moon_log_mpdccp_config()
+function _osnd_moon_log_mpdccp_config() {
+	local mpdccp_cc_tx=$(sudo sysctl net.dccp.default.tx_ccid)
+	local mpdccp_cc_rx=$(sudo sysctl net.dccp.default.rx_ccid)
+	local mpdccp_sched=$(sudo sysctl net.mpdccp.mpdccp_scheduler)
+	local mpdccp_pm=$(sudo sysctl net.mpdccp.mpdccp_path_manager)
+	local mpdccp_re=$(sudo sysctl net.mpdccp.mpdccp_reordering)
+
+	log I "MPDCCP Configuration"
+	log D "$mpdccp_cc_tx"
+	log D "$mpdccp_cc_rx"
+	log D "$mpdccp_sched"
+	log D "$mpdccp_pm"
+	log D "$mpdccp_re"
 }
 
 # _osnd_config_server_ip(route)
@@ -358,19 +375,18 @@ function osnd_moon_setup() {
 	elif [[ "$mp_prot" == "MPDCCP" ]]; then
 		_set_mpdccp_options "$route" "$mp_cc" "$mp_pm" "$mp_sched" "$mp_re"
 	fi
-
 	osnd_setup_opensand "$delay_gw" "$delay_st" "$attenuation" "$modulation_id"
 	sleep 1
 	moon_setup_moongen "$output_dir" "$run_id"
 	sleep 10
 	if [[ "$mp_prot" == "MPTCP" ]]; then
-		_osnd_moon_log_config
+		_osnd_moon_log_mptcp_config
+	else
+		_osnd_moon_log_mpdccp_config
 	fi
-
 	if (($(echo "$prime > 0" | bc -l))); then
 		_osnd_moon_prime_env $prime
 	fi
-
 	if [ "$dump" -gt 0 ]; then
 		_osnd_moon_capture "$output_dir" "$run_id" "$pep" "$route" "$dump"
 	fi

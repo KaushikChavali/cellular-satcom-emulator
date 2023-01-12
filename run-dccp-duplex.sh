@@ -177,7 +177,6 @@ function _osnd_moon_process_capture() {
         _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_st3"
     else
         _osnd_moon_extract_pcap "$output_dir" "$run_id" "dump_client_ue3_st3"
-        xz -T0 ${output_dir}/${run_id}_dump_mptcp_queue_occ.log
     fi
 }
 

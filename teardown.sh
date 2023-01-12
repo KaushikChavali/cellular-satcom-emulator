@@ -33,6 +33,8 @@ function _osnd_moon_teardown_capture() {
 # osnd_moon_teardown()
 # Teardown the entire emulation environment.
 function osnd_moon_teardown() {
+    local mp_prot="${scenario_config_ref['mp_prot']:-MPTCP}"
+
     log I "Tearing down emulation environment"
     osnd_teardown_opensand
     sleep $CMD_SHUTDOWN_WAIT
@@ -41,7 +43,9 @@ function osnd_moon_teardown() {
     # _osnd_moon_teardown_capture
     osnd_teardown_namespaces
     moon_teardown_namespaces
-    _disable_mptcp_protocol
+    if [[ "$mp_prot" == "MPTCP" ]]; then
+        _disable_mptcp_protocol
+    fi
     log D "Environment teared down"
 }
 
