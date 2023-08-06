@@ -1,6 +1,6 @@
 [submodule "moongen-lte-emulator"]
 	path = moongen-lte-emulator
-	url = https://gitlab.lrz.de/ge36xuy/moongen-lte-emulator.git
+	url = https://github.com/KaushikChavali/MoonGen.git
 [submodule "quic-opensand-emulation"]
 	path = quic-opensand-emulation
 	url = https://github.com/KaushikChavali/quic-opensand-emulation.git

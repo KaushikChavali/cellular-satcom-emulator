@@ -80,7 +80,7 @@ function _osnd_moon_iperf_measure_dl() {
     tmux -L ${TMUX_SOCKET} new-session -s iperf-cl-dl -d "sudo ip netns exec osnd-moon-cl bash"
     sleep $TMUX_INIT_WAIT
     if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
-        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-dl "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} --dccp --multipath -R -4 --logfile \"${output_dir}/${run_id}_iperf_dl_client.log\" 2>&1" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-dl "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} --dccp -R -4 --logfile \"${output_dir}/${run_id}_iperf_dl_client.log\" 2>&1" Enter
     else
         tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-dl "${IPERF_BIN} -c ${SV_LAN_SERVER_IP_MP%%/*} -p 5201 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} --dccp --multipath -R -4 --logfile \"${output_dir}/${run_id}_iperf_dl_client.log\" 2>&1" Enter
     fi
@@ -98,7 +98,7 @@ function _osnd_moon_iperf_measure_ul() {
     tmux -L ${TMUX_SOCKET} new-session -s iperf-cl-ul -d "sudo ip netns exec osnd-moon-cl bash"
     sleep $TMUX_INIT_WAIT
     if [[ "$route" == "LTE" ]] || [[ "$route" == "SAT" ]]; then
-        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-ul "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 4242 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} --dccp --multipath -4 --logfile \"${output_dir}/${run_id}_iperf_ul_client.log\" 2>&1" Enter
+        tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-ul "${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 4242 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} --dccp -4 --logfile \"${output_dir}/${run_id}_iperf_ul_client.log\" 2>&1" Enter
     else
         tmux -L ${TMUX_SOCKET} send-keys -t iperf-cl-ul "${IPERF_BIN} -c ${SV_LAN_SERVER_IP_MP%%/*} -p 4242 -b ${bandwidth} -t $measure_secs -i ${REPORT_INTERVAL} --dccp --multipath -4 --logfile \"${output_dir}/${run_id}_iperf_ul_client.log\" 2>&1" Enter
     fi

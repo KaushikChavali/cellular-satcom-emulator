@@ -64,6 +64,9 @@ function _configure_mpdccp_options() {
 	local mpdccp_sched="$3"
 	local mpdccp_re="$4"
 
+	# Enable MPDCCP debugging (Kernel bug preventing safe environment teardown)
+	sudo sysctl -wq net.mpdccp.mpdccp_debug=1
+
 	# Configure the path-manager;
 	# default
 	sudo sysctl -wq net.mpdccp.mpdccp_path_manager="$mpdccp_pm"
@@ -128,6 +131,11 @@ function _configure_mpdccp_options() {
 	tmp=`sudo ip netns exec osnd-moon-cl printf "0x%x\n" $((($(sudo ip netns exec osnd-moon-cl cat "/sys/class/net/ue3/flags"))|0x200000))`
 	sudo tmux send-keys -t config-mpdccp-cl "echo $tmp > "/sys/class/net/ue3/flags"" Enter
 	tmp=
+	# Set path priority for scheduler=cpf
+	# LTE [mpdccp_prio=3 (default)] has higher priority than SATCOM [mpdccp_prio=100]
+	if [[ "$mpdccp_sched" == "cpf" ]]; then
+		sudo tmux send-keys -t config-mpdccp-cl "echo 100 > "/sys/module/mpdccplink/links/dev/st3/mpdccp_prio"" Enter
+	fi
 	sudo tmux kill-session -t config-mpdccp-cl
 
 	# Server
@@ -197,6 +205,8 @@ function _osnd_moon_log_mpdccp_config() {
 	local mpdccp_sched=$(sudo sysctl net.mpdccp.mpdccp_scheduler)
 	local mpdccp_pm=$(sudo sysctl net.mpdccp.mpdccp_path_manager)
 	local mpdccp_re=$(sudo sysctl net.mpdccp.mpdccp_reordering)
+	local mpdccp_prio_st3=$(sudo ip netns exec osnd-moon-cl cat /sys/module/mpdccplink/links/dev/st3/mpdccp_prio)
+	local mpdccp_prio_ue3=$(sudo ip netns exec osnd-moon-cl cat /sys/module/mpdccplink/links/dev/ue3/mpdccp_prio)
 
 	log I "MPDCCP Configuration"
 	log D "$mpdccp_cc_tx"
@@ -204,6 +214,8 @@ function _osnd_moon_log_mpdccp_config() {
 	log D "$mpdccp_sched"
 	log D "$mpdccp_pm"
 	log D "$mpdccp_re"
+	log D "$mpdccp_prio_st3"
+	log D "$mpdccp_prio_ue3"
 }
 
 # _osnd_config_server_ip(route)
