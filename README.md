@@ -1,6 +1,6 @@
-# LTE and SATCOM Joint Emulator
+# Cellular and SATCOM Joint Emulator
 
-The scripts are built on the [OpenSAND](https://opensand.org/content/home.php) satellite and [MoonGen](https://github.com/brentondwalker/MoonGen/) LTE emulation platforms. They offer a possibility to run automated measurements of various transport and application layer network protocols. The LTE and SATCOM joint emulator is based on the [fork](https://github.com/curtp67/quic-opensand-emulation) from the [quic-opensand-emulation](https://github.com/moonlight200/quic-opensand-evaluation) repo.
+The scripts are built on the [OpenSAND](https://opensand.org/content/home.php) satellite and [MoonGen](https://github.com/brentondwalker/MoonGen/) cellular emulation platforms. They offer a possibility to run automated measurements of various transport and application layer network protocols. The Cellular and SATCOM joint emulator is based on the [fork](https://github.com/curtp67/quic-opensand-emulation) from the [quic-opensand-emulation](https://github.com/moonlight200/quic-opensand-evaluation) repo.
 
 Each emulation (one execution of the `execute-measurements.sh` script) consist of multiple
 scenarios that are tested, each of which has a different configuration (such as
@@ -174,3 +174,9 @@ and goodput measurement runs. All parameters that are not given use the default 
 thus the last scenario would be executed with one run per goodput measurement.
 
 It is `strongly recommended` to use the scenario configuration file for the joint emulation.
+
+## Copyright
+
+Copyright (C) 2023 Kaushik Chavali.
+
+This code is licensed under GNU General Public License v3.0. For further information, please refer to [LICENSE](LICENSE)
