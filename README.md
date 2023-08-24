@@ -1,6 +1,6 @@
 # Cellular and SATCOM Joint Emulator
 
-The scripts are built on the [OpenSAND](https://opensand.org/content/home.php) satellite and [MoonGen](https://github.com/brentondwalker/MoonGen/) cellular emulation platforms. They offer a possibility to run automated measurements of various transport and application layer network protocols. The Cellular and SATCOM joint emulator is based on the [fork](https://github.com/curtp67/quic-opensand-emulation) from the [quic-opensand-emulation](https://github.com/moonlight200/quic-opensand-evaluation) repo.
+The scripts are built on the [OpenSAND](https://github.com/CNES/opensand) satellite and [MoonGen](https://github.com/KaushikChavali/MoonGen) cellular emulation platforms. They offer a possibility to run automated measurements of various transport and application layer network protocols. The Cellular and SATCOM joint emulator is based on the [fork](https://github.com/KaushikChavali/quic-opensand-emulation) from the [quic-opensand-emulation](https://github.com/moonlight200/quic-opensand-evaluation) repo. The [Wiki](https://github.com/KaushikChavali/cellular-satcom-emulator/wiki) contains the recipe to clone the testbed.
 
 Each emulation (one execution of the `execute-measurements.sh` script) consist of multiple
 scenarios that are tested, each of which has a different configuration (such as
@@ -23,7 +23,7 @@ the runs aim to measure the following set of performance values:
 * Connection Establishment Time
 * Time to First Byte
 
-For evaluation of the result you can use these scripts: [quic-opensand-evaluation](https://github.com/curtp67/quic-opensand-evaluation)
+For evaluation of the result you can use these scripts: [quic-opensand-evaluation](https://github.com/KaushikChavali/cellular-satcom-evaluation)
 
 ### Script structure
 
@@ -46,14 +46,15 @@ also be executed individually for e.g. manual measurements.
 
 These programs need to be cloned and built
 
-* [qperf](https://gitlab.lrz.de/kosekmike/qperf)
+* [qperf](https://github.com/kosekmi/qperf)
 * [pepsal](https://github.com/danielinux/pepsal)
-* [moongen](https://gitlab.lrz.de/ge36xuy/moongen-lte-emulator)
+* [moongen](https://github.com/KaushikChavali/MoonGen)
 * [GStreamer](https://github.com/GStreamer/gstreamer)
+* [RTP-over-QUIC](https://github.com/mengelbart/rtp-over-quic)
 
 The following utilities need to be installed on the system:
 
-* [opensand](https://opensand.org/content/get.php) (which installs `opensand-core`, `opensand-network` and `opensand-daemon`)  
+* [opensand](https://github.com/CNES/opensand) (which installs `opensand-core`, `opensand-network` and `opensand-daemon`)  
   Not required are `opensand-collector` and `opensand-manager`
 * iperf3
 * tmux
@@ -175,7 +176,7 @@ thus the last scenario would be executed with one run per goodput measurement.
 
 It is `strongly recommended` to use the scenario configuration file for the joint emulation.
 
-## Copyright
+## Licence
 
 Copyright (C) 2023 Kaushik Chavali.
 

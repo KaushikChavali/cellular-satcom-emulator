@@ -37,12 +37,12 @@ LATENCY_DL=45
 LATENCY_UL=42
 
 # Variable bitrate file path (set it empty if fixed rate is employed)
-VAR_RATE_DL="$HOME/lte-satcom-emulator/config/bitrate_dl.csv"
-VAR_RATE_UL="$HOME/lte-satcom-emulator/config/bitrate_ul.csv"
+VAR_RATE_DL="$HOME/cellular-satcom-emulator/config/bitrate_dl.csv"
+VAR_RATE_UL="$HOME/cellular-satcom-emulator/config/bitrate_ul.csv"
 
 # Variable emulated latency file path (set it empty if fixed latency is employed)
 VAR_LATENCY_DL="\"\""
-VAR_LATENCY_UL="$HOME/lte-satcom-emulator/config/latency_ul.csv"
+VAR_LATENCY_UL="$HOME/cellular-satcom-emulator/config/latency_ul.csv"
 
 # Maximum number of packets to hold in the delay line
 QDEPTH_DL=1000
